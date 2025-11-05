@@ -82,7 +82,7 @@ end)
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, 0, 1, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Frox Hack  •  efeakincipo"
+titleLabel.Text = "Frox Hack  •  Owner: efeakincipo"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamSemibold
 titleLabel.TextSize = 18
