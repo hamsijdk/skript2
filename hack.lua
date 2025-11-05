@@ -1,113 +1,322 @@
--- Frox Hack | Admin-only LocalScript
-local P,S,UIS,RS=game.Players,game:GetService("StarterGui"),game:GetService("UserInputService"),game:GetService("RunService")
-local pl=P.LocalPlayer
-if not table.find({game.CreatorId},pl.UserId) then return end
--- State
-local fly,noclip=false,false;local flySpeed,walkSpeed=50,16;local ctrl={F=0,B=0,L=0,R=0}
-local bv,bg
--- UI
-local sg=Instance.new("ScreenGui",pl:WaitForChild("PlayerGui"));sg.ResetOnSpawn=false
-local btn=Instance.new("TextButton",sg)
-btn.Size=UDim2.new(0,120,0,48);btn.Position=UDim2.new(0,20,0,120)
-btn.Text="Frox Hack";btn.Font=Enum.Font.GothamBold;btn.TextSize=18;btn.TextColor3=Color3.new(1,1,1)
-btn.BackgroundColor3=Color3.fromRGB(45,45,45);btn.BorderSizePixel=0;btn.Active=true;btn.Draggable=true
-local btnC=Instance.new("UICorner",btn);btnC.CornerRadius=UDim.new(0,12)
-local panel=Instance.new("Frame",sg);panel.Size=UDim2.new(0,420,0,300);panel.Position=UDim2.new(0.5,-210,-1.2,0)
-panel.AnchorPoint=Vector2.new(0.5,0);panel.BackgroundColor3=Color3.fromRGB(28,28,28);panel.BorderSizePixel=0
-local pc=Instance.new("UICorner",panel);pc.CornerRadius=UDim.new(0,12)
-local tb=Instance.new("Frame",panel);tb.Size=UDim2.new(1,0,0,40);tb.BackgroundTransparency=1
-local tl=Instance.new("TextLabel",tb);tl.Size=UDim2.new(1,-40,1,0);tl.Position=UDim2.new(0,10,0,0)
-tl.BackgroundTransparency=1;tl.Text="Frox Hack  •  efeakincipo";tl.Font=Enum.Font.GothamSemibold
-tl.TextSize=16;tl.TextColor3=Color3.new(1,1,1);tl.TextXAlignment=Enum.TextXAlignment.Left
-local close=Instance.new("TextButton",tb);close.Size=UDim2.new(0,28,0,24);close.Position=UDim2.new(1,-38,0,8)
-close.Text="X";close.Font=Enum.Font.Gotham;close.TextSize=14;close.BackgroundColor3=Color3.fromRGB(70,70,70)
-close.TextColor3=Color3.new(1,1,1);close.BorderSizePixel=0;local cc=Instance.new("UICorner",close);cc.CornerRadius=UDim.new(0,6)
--- Panel anim
-local open=false;local tw1=TweenInfo.new(0.45,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
-local tw2=TweenInfo.new(0.35,Enum.EasingStyle.Quad,Enum.EasingDirection.In)
-local goOpen={Position=UDim2.new(0.5,-210,0.15,0)};local goClose={Position=UDim2.new(0.5,-210,-1.2,0)}
-btn.MouseButton1Click:Connect(function() if not open then requireTween(panel,tw1,goOpen) open=true else requireTween(panel,tw2,goClose) open=false end end)
-close.MouseButton1Click:Connect(function() requireTween(panel,tw2,goClose) open=false end)
-function requireTween(o,i,g) TweenService:Create(o,i,g):Play() end
--- Buttons
-local function mkBtn(txt,y)
-	local b=Instance.new("TextButton",panel);b.Size=UDim2.new(0,380,0,40);b.Position=UDim2.new(0.5,-190,0,y)
-	b.BackgroundColor3=Color3.fromRGB(55,55,55);b.BorderSizePixel=0;b.Font=Enum.Font.Gotham
-	b.TextSize=16;b.TextColor3=Color3.new(1,1,1);b.Text=txt
-	local uc=Instance.new("UICorner",b);uc.CornerRadius=UDim.new(0,12)
-	return b
-end
-local curY=50
-local flyBtn=mkBtn("Fly: Kapalı",curY);curY=curY+50
-local nocBtn=mkBtn("Noclip: Kapalı",curY);curY=curY+50
--- Sliders
-local function mkSlider(labelY,txt,maxVal,init)
-	local lab=Instance.new("TextLabel",panel);lab.Size=UDim2.new(0,380,0,20)
-	lab.Position=UDim2.new(0.5,-190,0,labelY);lab.BackgroundTransparency=1;lab.Text=txt.." "..tostring(init)
-	lab.Font=Enum.Font.Gotham;lab.TextSize=14;lab.TextColor3=Color3.fromRGB(220,220,220)
-	local bg=Instance.new("Frame",panel);bg.Size=UDim2.new(0,380,0,18);bg.Position=UDim2.new(0.5,-190,0,labelY+22)
-	bg.BackgroundColor3=Color3.fromRGB(70,70,70);bg.BorderSizePixel=0
-	local fg=Instance.new("Frame",bg);fg.Size=UDim2.new(init/maxVal,0,1,0);fg.BackgroundColor3=(txt=="Fly Hızı:" and Color3.fromRGB(120,120,255) or Color3.fromRGB(120,255,120))
-	local uc=Instance.new("UICorner",bg);uc.CornerRadius=UDim.new(0,9);local uc2=Instance.new("UICorner",fg);uc2.CornerRadius=UDim.new(0,9)
-	return lab,bg,fg
-end
-local flyLab,flyBG,flyFG=mkSlider(curY,"Fly Hızı:",300,flySpeed);curY=curY+40
-local walkLab,walkBG,walkFG=mkSlider(curY,"Walk Speed:",100,walkSpeed);curY=curY+40
--- Drag sliders
-local function sliderLogic(bg,fg,lab,maxVal,callback)
-	local drag=false
-	bg.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 then drag=true end end)
-	UIS.InputChanged:Connect(function(input)
-		if drag and input.UserInputType==Enum.UserInputType.MouseMovement then
-			local x=math.clamp(input.Position.X-bg.AbsolutePosition.X,0,bg.AbsoluteSize.X)
-			local frac=x/bg.AbsoluteSize.X;fg.Size=UDim2.new(frac,0,1,0);callback(math.floor(frac*maxVal));lab.Text=lab.Text:match("^[^:]+:").." "..tostring(math.floor(frac*maxVal)) end
-	end)
-	UIS.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end end)
-end
-sliderLogic(flyBG,flyFG,flyLab,300,function(v) flySpeed=v end)
-sliderLogic(walkBG,walkFG,walkLab,100,function(v) walkSpeed=v if pl.Character and pl.Character:FindFirstChild("Humanoid") then pl.Character.Humanoid.WalkSpeed=v end end)
--- Fly logic
-local ctrlKeys={F=0,B=0,L=0,R=0}
-UIS.InputBegan:Connect(function(i,gp) if gp then return end
-	if i.KeyCode==Enum.KeyCode.W then ctrlKeys.F=1 end
-	if i.KeyCode==Enum.KeyCode.S then ctrlKeys.B=-1 end
-	if i.KeyCode==Enum.KeyCode.A then ctrlKeys.L=-1 end
-	if i.KeyCode==Enum.KeyCode.D then ctrlKeys.R=1 end
-end)
-UIS.InputEnded:Connect(function(i) 
-	if i.KeyCode==Enum.KeyCode.W then ctrlKeys.F=0 end
-	if i.KeyCode==Enum.KeyCode.S then ctrlKeys.B=0 end
-	if i.KeyCode==Enum.KeyCode.A then ctrlKeys.L=0 end
-	if i.KeyCode==Enum.KeyCode.D then ctrlKeys.R=0 end
-end)
-local function startFly()
-	if fly then return end
-	fly=true
-	local char=pl.Character; if not char then return end
-	local hrp=char:FindFirstChild("HumanoidRootPart"); if not hrp then return end
-	bg=Instance.new("BodyGyro",hrp);bg.P=9e4;bg.MaxTorque=Vector3.new(9e9,9e9,9e9);bg.D=500
-	bv=Instance.new("BodyVelocity",hrp);bv.MaxForce=Vector3.new(9e9,9e9,9e9);bv.Velocity=Vector3.new(0,0,0)
-	RS.Heartbeat:Connect(function()
-		if not fly then return end
-		local cam=workspace.CurrentCamera
-		bg.CFrame=cam.CFrame
-		local dir=(cam.CFrame.LookVector*(ctrlKeys.F+ctrlKeys.B))+(cam.CFrame.RightVector*(ctrlKeys.R+ctrlKeys.L))
-		bv.Velocity=dir*flySpeed
-	end)
-end
-local function stopFly() fly=false; if bg then bg:Destroy() end if bv then bv:Destroy() end end
-flyBtn.MouseButton1Click:Connect(function() if fly then stopFly();flyBtn.Text="Fly: Kapalı" else startFly();flyBtn.Text="Fly: Açık" end end)
--- Noclip
-nocBtn.MouseButton1Click:Connect(function() noclip=not noclip;nocBtn.Text=noclip and "Noclip: Açık" or "Noclip: Kapalı" end)
-RS.Stepped:Connect(function()
-	if noclip and pl.Character then
-		for _,p in pairs(pl.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide=false end end
+-- Srox Hack GUI Geliştirilmiş | LocalScript
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+-- Durumlar
+local flying = false
+local noclip = false
+local flySpeed = 50
+local walkSpeed = 16
+local control = {F=0,B=0,L=0,R=0}
+local bodyGyro, bodyVelocity
+
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Ana buton
+local mainButton = Instance.new("TextButton")
+mainButton.Size = UDim2.new(0,120,0,50)
+mainButton.Position = UDim2.new(0,50,0,150)
+mainButton.Text = "Srox Hack"
+mainButton.Font = Enum.Font.GothamBold
+mainButton.TextSize = 18
+mainButton.TextColor3 = Color3.new(1,1,1)
+mainButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+mainButton.BorderSizePixel = 0
+mainButton.AutoButtonColor = true
+mainButton.Active = true
+mainButton.Parent = screenGui
+local mbCorner = Instance.new("UICorner", mainButton)
+mbCorner.CornerRadius = UDim.new(0,15)
+mainButton.Draggable = true
+
+-- Panel
+local panel = Instance.new("Frame")
+panel.Size = UDim2.new(0,400,0,380)
+panel.Position = UDim2.new(0.5,-200,-1,0)
+panel.AnchorPoint = Vector2.new(0.5,0)
+panel.BackgroundColor3 = Color3.fromRGB(30,30,30)
+panel.BorderSizePixel = 0
+panel.Parent = screenGui
+panel.ClipsDescendants = true
+local panelCorner = Instance.new("UICorner", panel)
+panelCorner.CornerRadius = UDim.new(0,10)
+
+-- Panel draggable
+local draggingPanel = false
+local dragInput, dragStart, startPos
+local titleBar = Instance.new("Frame", panel)
+titleBar.Size = UDim2.new(1,0,0,36)
+titleBar.BackgroundTransparency = 1
+titleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		draggingPanel = true
+		dragStart = input.Position
+		startPos = panel.Position
 	end
 end)
--- Spawn
-pl.CharacterAdded:Connect(function(char)
-	task.wait(0.2)
-	if char:FindFirstChild("Humanoid") then char.Humanoid.WalkSpeed=walkSpeed end
-	if fly then pcall(stopFly);pcall(startFly) end
+titleBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
 end)
-if pl.Character and pl.Character:FindFirstChild("Humanoid") then pl.Character.Humanoid.WalkSpeed=walkSpeed end
+UserInputService.InputChanged:Connect(function(input)
+	if draggingPanel and input == dragInput then
+		local delta = input.Position - dragStart
+		panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		draggingPanel = false
+	end
+end)
+
+-- Başlık
+local titleLabel = Instance.new("TextLabel", titleBar)
+titleLabel.Size = UDim2.new(1,0,1,0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Srox Hack  •  efeakincipo"
+titleLabel.TextColor3 = Color3.new(1,1,1)
+titleLabel.Font = Enum.Font.GothamSemibold
+titleLabel.TextSize = 16
+
+-- Kapat butonu
+local closeBtn = Instance.new("TextButton", titleBar)
+closeBtn.Size = UDim2.new(0,28,0,24)
+closeBtn.Position = UDim2.new(1,-34,0,6)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 14
+closeBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+closeBtn.TextColor3 = Color3.new(1,1,1)
+closeBtn.BorderSizePixel = 0
+local closeCorner = Instance.new("UICorner", closeBtn)
+closeCorner.CornerRadius = UDim.new(0,6)
+
+-- Panel içerik
+local contentY = 46
+local function makeButton(text, y)
+	local btn = Instance.new("TextButton", panel)
+	btn.Size = UDim2.new(0,360,0,40)
+	btn.Position = UDim2.new(0.5,-180,y)
+	btn.BackgroundColor3 = Color3.fromRGB(55,55,55)
+	btn.Text = text
+	btn.Font = Enum.Font.Gotham
+	btn.TextSize = 16
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.BorderSizePixel = 0
+	local c = Instance.new("UICorner", btn)
+	c.CornerRadius = UDim.new(0,15)
+	return btn
+end
+
+-- Fly Button
+local flyBtn = makeButton("Fly: Kapalı", contentY)
+contentY = contentY + 52
+
+-- Fly speed slider
+local flyLabel = Instance.new("TextLabel", panel)
+flyLabel.Size = UDim2.new(0,360,0,20)
+flyLabel.Position = UDim2.new(0.5,-180,0,contentY)
+flyLabel.BackgroundTransparency = 1
+flyLabel.Text = "Fly Hızı: "..flySpeed
+flyLabel.Font = Enum.Font.Gotham
+flyLabel.TextSize = 14
+flyLabel.TextColor3 = Color3.fromRGB(230,230,230)
+contentY = contentY + 24
+
+local flySliderBG = Instance.new("Frame", panel)
+flySliderBG.Size = UDim2.new(0,360,0,18)
+flySliderBG.Position = UDim2.new(0.5,-180,0,contentY)
+flySliderBG.BackgroundColor3 = Color3.fromRGB(75,75,75)
+flySliderBG.BorderSizePixel = 0
+local flySliderCorner = Instance.new("UICorner", flySliderBG)
+flySliderCorner.CornerRadius = UDim.new(0,9)
+
+local flySliderFill = Instance.new("Frame", flySliderBG)
+flySliderFill.Size = UDim2.new(flySpeed/200,0,1,0)
+flySliderFill.BackgroundColor3 = Color3.fromRGB(120,120,255)
+local flySliderFillCorner = Instance.new("UICorner", flySliderFill)
+flySliderFillCorner.CornerRadius = UDim.new(0,9)
+
+contentY = contentY + 34
+
+-- Noclip Button
+local noclipBtn = makeButton("Duvardan Geçme: Kapalı", contentY)
+contentY = contentY + 52
+
+-- WalkSpeed slider
+local walkSpeedLabel = Instance.new("TextLabel", panel)
+walkSpeedLabel.Size = UDim2.new(0,360,0,20)
+walkSpeedLabel.Position = UDim2.new(0.5,-180,0,contentY)
+walkSpeedLabel.BackgroundTransparency = 1
+walkSpeedLabel.Text = "Walk Speed: "..walkSpeed
+walkSpeedLabel.Font = Enum.Font.Gotham
+walkSpeedLabel.TextSize = 14
+walkSpeedLabel.TextColor3 = Color3.fromRGB(230,230,230)
+contentY = contentY + 24
+
+local walkSliderBG = Instance.new("Frame", panel)
+walkSliderBG.Size = UDim2.new(0,360,0,18)
+walkSliderBG.Position = UDim2.new(0.5,-180,0,contentY)
+walkSliderBG.BackgroundColor3 = Color3.fromRGB(75,75,75)
+walkSliderBG.BorderSizePixel = 0
+local walkSliderCorner = Instance.new("UICorner", walkSliderBG)
+walkSliderCorner.CornerRadius = UDim.new(0,9)
+
+local walkSliderFill = Instance.new("Frame", walkSliderBG)
+walkSliderFill.Size = UDim2.new(walkSpeed/100,0,1,0)
+walkSliderFill.BackgroundColor3 = Color3.fromRGB(120,255,120)
+local walkSliderFillCorner = Instance.new("UICorner", walkSliderFill)
+walkSliderFillCorner.CornerRadius = UDim.new(0,9)
+
+-- Panel animasyon
+local panelOpen = false
+local openTweenInfo = TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local closeTweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+local openGoal = {Position = UDim2.new(0.5,-200,0.2,0)}
+local closeGoal = {Position = UDim2.new(0.5,-200,-1,0)}
+
+local function togglePanel()
+	if not panelOpen then
+		TweenService:Create(panel, openTweenInfo, openGoal):Play()
+		panelOpen = true
+	else
+		TweenService:Create(panel, closeTweenInfo, closeGoal):Play()
+		panelOpen = false
+	end
+end
+
+mainButton.MouseButton1Click:Connect(togglePanel)
+closeBtn.MouseButton1Click:Connect(togglePanel)
+
+-- Fly logic
+local function startFly()
+	if flying then return end
+	flying = true
+	local char = player.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	local root = char.HumanoidRootPart
+
+	bodyGyro = Instance.new("BodyGyro", root)
+	bodyVelocity = Instance.new("BodyVelocity", root)
+	bodyGyro.P = 9e4
+	bodyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9)
+	bodyGyro.CFrame = root.CFrame
+	bodyVelocity.MaxForce = Vector3.new(9e9,9e9,9e9)
+	bodyVelocity.Velocity = Vector3.new(0,0,0)
+
+	RunService:BindToRenderStep("SroxFly",200,function()
+		if not flying then return end
+		local cam = workspace.CurrentCamera
+		bodyGyro.CFrame = cam.CFrame
+		local dir = (cam.CFrame.LookVector*(control.F+control.B)) + (cam.CFrame.RightVector*(control.R+control.L))
+		bodyVelocity.Velocity = dir * flySpeed
+	end)
+end
+
+local function stopFly()
+	flying = false
+	pcall(function() RunService:UnbindFromRenderStep("SroxFly") end)
+	if bodyGyro then bodyGyro:Destroy() end
+	if bodyVelocity then bodyVelocity:Destroy() end
+end
+
+-- Noclip logic
+RunService.Stepped:Connect(function()
+	if noclip and player.Character then
+		for _,p in pairs(player.Character:GetDescendants()) do
+			if p:IsA("BasePart") then p.CanCollide = false end
+		end
+	end
+end)
+
+-- WalkSpeed
+local function updateWalkSpeed()
+	if player.Character and player.Character:FindFirstChild("Humanoid") then
+		player.Character.Humanoid.WalkSpeed = walkSpeed
+	end
+end
+
+-- Key input
+UserInputService.InputBegan:Connect(function(inp, gp)
+	if gp then return end
+	if inp.KeyCode == Enum.KeyCode.W then control.F = 1 end
+	if inp.KeyCode == Enum.KeyCode.S then control.B = -1 end
+	if inp.KeyCode == Enum.KeyCode.A then control.L = -1 end
+	if inp.KeyCode == Enum.KeyCode.D then control.R = 1 end
+end)
+UserInputService.InputEnded:Connect(function(inp)
+	if inp.KeyCode == Enum.KeyCode.W then control.F = 0 end
+	if inp.KeyCode == Enum.KeyCode.S then control.B = 0 end
+	if inp.KeyCode == Enum.KeyCode.A then control.L = 0 end
+	if inp.KeyCode == Enum.KeyCode.D then control.R = 0 end
+end)
+
+-- UI etkileşimleri
+flyBtn.MouseButton1Click:Connect(function()
+	if flying then
+		stopFly()
+		flyBtn.Text = "Fly: Kapalı"
+	else
+		startFly()
+		flyBtn.Text = "Fly: Açık"
+	end
+end)
+
+noclipBtn.MouseButton1Click:Connect(function()
+	noclip = not noclip
+	noclipBtn.Text = noclip and "Duvardan Geçme: Açık" or "Duvardan Geçme: Kapalı"
+end)
+
+-- Fly slider
+local draggingFlySlider = false
+flySliderBG.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingFlySlider=true end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if draggingFlySlider and input.UserInputType==Enum.UserInputType.MouseMovement then
+		local x = math.clamp(input.Position.X - flySliderBG.AbsolutePosition.X,0,flySliderBG.AbsoluteSize.X)
+		local frac = x/flySliderBG.AbsoluteSize.X
+		flySpeed = math.max(1, math.floor(frac*200))
+		flySliderFill.Size = UDim2.new(frac,0,1,0)
+		flyLabel.Text = "Fly Hızı: "..flySpeed
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingFlySlider=false end
+end)
+
+-- WalkSpeed slider
+local draggingWalkSlider = false
+walkSliderBG.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingWalkSlider=true end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if draggingWalkSlider and input.UserInputType==Enum.UserInputType.MouseMovement then
+		local x = math.clamp(input.Position.X - walkSliderBG.AbsolutePosition.X,0,walkSliderBG.AbsoluteSize.X)
+		local frac = x/walkSliderBG.AbsoluteSize.X
+		walkSpeed = math.max(8, math.floor(frac*100))
+		walkSliderFill.Size = UDim2.new(frac,0,1,0)
+		walkSpeedLabel.Text = "Walk Speed: "..walkSpeed
+		updateWalkSpeed()
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingWalkSlider=false end
+end)
+
+-- Spawn sonrası
+player.CharacterAdded:Connect(function()
+	wait(0.2)
+	updateWalkSpeed()
+	if flying then pcall(stopFly); pcall(startFly) end
+end)
+if player.Character then updateWalkSpeed() end
