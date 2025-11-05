@@ -82,7 +82,7 @@ end)
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, 0, 1, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Frox Hack  •  Owner: efeakincipo"
+titleLabel.Text = "Frox Hack  •  efeakincipo"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamSemibold
 titleLabel.TextSize = 18
@@ -203,8 +203,8 @@ end
 mainButton.MouseButton1Click:Connect(togglePanel)
 closeBtn.MouseButton1Click:Connect(togglePanel)
 
--- %100 GÖRÜNMEZLİK SİSTEMİ
-local characterClone = nil
+-- MÜKEMMEL GÖRÜNMEZLİK SİSTEMİ
+local originalValues = {}
 
 local function toggleInvisibility()
     invisible = not invisible
@@ -212,49 +212,50 @@ local function toggleInvisibility()
     
     if character then
         if invisible then
-            -- 1. YÖNTEM: Character'i tamamen gizle
-            character.Parent = nil
-            
-            -- 2. YÖNTEM: Fake karakter oluştur (sadece sen görürsün)
-            characterClone = character:Clone()
-            
-            -- Fake karakteri workspace'e ekle (sadece senin için)
-            for _, part in pairs(characterClone:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Transparency = 0.5  -- Hayalet gibi görünür
-                    part.CanCollide = false
+            -- Görünmez yap - SADECE TRANSPARENCY DEĞİŞTİR
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") or part:IsA("MeshPart") then
+                    -- Orijinal değeri kaydet
+                    originalValues[part] = part.Transparency
+                    -- Görünmez yap
+                    part.Transparency = 1
+                elseif part:IsA("Decal") then
+                    originalValues[part] = part.Transparency
+                    part.Transparency = 1
+                elseif part:IsA("ParticleEmitter") or part:IsA("Beam") or part:IsA("Trail") then
+                    originalValues[part] = part.Enabled
+                    part.Enabled = false
                 end
             end
-            characterClone.Parent = workspace
             
-            -- 3. YÖNTEM: Tüm part'ları yok et (diğer oyuncular için)
-            spawn(function()
-                while invisible do
-                    wait(0.1)
-                    if character and character.Parent then
-                        character.Parent = nil
-                    end
-                end
-            end)
+            -- Humanoid'i de gizle
+            local humanoid = character:FindFirstChild("Humanoid")
+            if humanoid then
+                originalValues[humanoid] = humanoid.DisplayDistanceType
+                humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+            end
             
         else
             -- Görünür yap
-            if character then
-                character.Parent = workspace
+            for part, originalValue in pairs(originalValues) do
+                if part and part.Parent then
+                    if part:IsA("BasePart") or part:IsA("MeshPart") or part:IsA("Decal") then
+                        part.Transparency = originalValue
+                    elseif part:IsA("ParticleEmitter") or part:IsA("Beam") or part:IsA("Trail") then
+                        part.Enabled = originalValue
+                    elseif part:IsA("Humanoid") then
+                        part.DisplayDistanceType = originalValue
+                    end
+                end
             end
-            
-            -- Fake karakteri temizle
-            if characterClone then
-                characterClone:Destroy()
-                characterClone = nil
-            end
+            originalValues = {}
         end
     end
     
     invisibleBtn.Text = invisible and "Görünmezlik: Açık" or "Görünmezlik: Kapalı"
 end
 
--- Fly fonksiyonu
+-- MÜKEMMEL FLY SİSTEMİ
 local function startFly()
     if flying then return end
     flying = true
@@ -571,7 +572,7 @@ if player.Character then
     end
 end
 
--- Sürekli kontrol için basit çözüm
+-- Sürekli kontrol için
 spawn(function()
     while true do
         wait(1)
