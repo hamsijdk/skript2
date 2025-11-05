@@ -1,4 +1,3 @@
--- Gelişmiş Fly + Noclip GUI Scripti
 -- LocalScript olarak StarterPlayerScripts içine at
 
 local Players = game:GetService("Players")
@@ -8,35 +7,29 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
--- Fly/Noclip değişkenleri
 local flying = false
 local noclip = false
 local flySpeed = 50
-local control = {F=0, B=0, L=0, R=0}
+local control = {F=0,B=0,L=0,R=0}
 local bodyGyro, bodyVelocity
 
--- Bot (ana buton)
+-- ScreenGui
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 screenGui.ResetOnSpawn = false
 
-local botButton = Instance.new("ImageButton", screenGui)
+-- Bot buton (oval, logosuz)
+local botButton = Instance.new("TextButton", screenGui)
 botButton.Size = UDim2.new(0,60,0,60)
 botButton.Position = UDim2.new(0,50,0,200)
-botButton.Image = "rbxassetid://INSERT_ASLAN_LOGO_ASSETID" -- Buraya kendi logo assetID
-botButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
+botButton.Text = "Bot"
+botButton.TextColor3 = Color3.new(1,1,1)
+botButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
 botButton.BorderSizePixel = 0
 botButton.AutoButtonColor = true
-botButton.ScaleType = Enum.ScaleType.Crop
-botButton.ImageTransparency = 0
 
-botButton.ClipsDescendants = true
-botButton.AnchorPoint = Vector2.new(0.5,0.5)
-botButton.ImageRectOffset = Vector2.new(0,0)
-botButton.ImageRectSize = Vector2.new(512,512)
-botButton.ImageTransparency = 0
-botButton.ZIndex = 10
-botButton.Name = "BotButton"
-botButton.BackgroundTransparency = 1
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0,30)
+corner.Parent = botButton
 
 -- Panel
 local mainFrame = Instance.new("Frame", screenGui)
@@ -45,19 +38,12 @@ mainFrame.Position = UDim2.new(0.5,-125,-0.5,0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(35,35,35)
 mainFrame.BorderSizePixel = 0
 mainFrame.AnchorPoint = Vector2.new(0.5,0)
-mainFrame.Visible = true
 mainFrame.ClipsDescendants = true
 
--- Üst logo ve isim
-local topLogo = Instance.new("ImageLabel", mainFrame)
-topLogo.Size = UDim2.new(0,40,0,40)
-topLogo.Position = UDim2.new(0,10,0,10)
-topLogo.Image = "rbxassetid://INSERT_ASLAN_LOGO_ASSETID"
-topLogo.BackgroundTransparency = 1
-
+-- Üst Yapan Label
 local creatorLabel = Instance.new("TextLabel", mainFrame)
-creatorLabel.Size = UDim2.new(0,180,0,40)
-creatorLabel.Position = UDim2.new(0,60,0,10)
+creatorLabel.Size = UDim2.new(0,220,0,40)
+creatorLabel.Position = UDim2.new(0,15,0,10)
 creatorLabel.Text = "Yapan: efeakincipo"
 creatorLabel.TextColor3 = Color3.new(1,1,1)
 creatorLabel.BackgroundTransparency = 1
@@ -72,15 +58,11 @@ flyButton.Text = "Fly: Kapalı"
 flyButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
 flyButton.TextColor3 = Color3.new(1,1,1)
 flyButton.BorderSizePixel = 0
-flyButton.AutoButtonColor = true
-flyButton.TextScaled = true
-flyButton.TextWrapped = true
-flyButton.ClipsDescendants = true
-flyButton.AnchorPoint = Vector2.new(0,0)
-flyButton.BackgroundTransparency = 0
-flyButton.Rounding = Enum.Roundness.Full -- Oval görünüm
+local cornerFly = Instance.new("UICorner")
+cornerFly.CornerRadius = UDim.new(0,20)
+cornerFly.Parent = flyButton
 
--- Fly Speed Label
+-- Fly Hız Label
 local speedLabel = Instance.new("TextLabel", mainFrame)
 speedLabel.Size = UDim2.new(0,220,0,20)
 speedLabel.Position = UDim2.new(0,15,0,110)
@@ -98,7 +80,6 @@ speedSlider.BackgroundColor3 = Color3.fromRGB(70,70,70)
 speedSlider.Text = "Kaydırarak Ayarla"
 speedSlider.TextColor3 = Color3.new(1,1,1)
 speedSlider.TextScaled = true
-speedSlider.AutoButtonColor = false
 speedSlider.BorderSizePixel = 0
 
 -- Noclip Button
@@ -109,10 +90,11 @@ noclipButton.Text = "Duvardan Geçme: Kapalı"
 noclipButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
 noclipButton.TextColor3 = Color3.new(1,1,1)
 noclipButton.BorderSizePixel = 0
-noclipButton.AutoButtonColor = true
-noclipButton.TextScaled = true
+local cornerNoclip = Instance.new("UICorner")
+cornerNoclip.CornerRadius = UDim.new(0,20)
+cornerNoclip.Parent = noclipButton
 
--- Panel animasyonu (Bot tıklanınca)
+-- Panel animasyonu
 botButton.MouseButton1Click:Connect(function()
 	local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local goal = {Position = UDim2.new(0.5,-125,0.5,50)}
@@ -120,7 +102,7 @@ botButton.MouseButton1Click:Connect(function()
 	tween:Play()
 end)
 
--- Fly fonksiyonu
+-- Fly fonksiyonları
 local function startFly()
 	if flying then return end
 	flying = true
@@ -176,7 +158,7 @@ UserInputService.InputEnded:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.D then control.R = 0 end
 end)
 
--- Buton tıklamaları
+-- Butonlar
 flyButton.MouseButton1Click:Connect(function()
 	if flying then
 		stopFly()
@@ -188,16 +170,15 @@ flyButton.MouseButton1Click:Connect(function()
 end)
 
 noclipButton.MouseButton1Click:Connect(function()
+	noclip = not noclip
 	if noclip then
-		noclip = false
-		noclipButton.Text = "Duvardan Geçme: Kapalı"
-	else
-		noclip = true
 		noclipButton.Text = "Duvardan Geçme: Açık"
+	else
+		noclipButton.Text = "Duvardan Geçme: Kapalı"
 	end
 end)
 
--- Speed slider
+-- Slider
 local dragging = false
 speedSlider.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
