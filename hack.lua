@@ -157,10 +157,10 @@ contentY = contentY + 52
 local flyLabel, flySliderBG, flySliderFill, flyMin, flyMax = makeSlider("Fly Hızı:", contentY, flySpeed, 1, 200, Color3.fromRGB(120, 120, 255)) 
 contentY = contentY + 34
 
-local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax = makeSlider("Walk Speed:", contentY, walkSpeed, 0, 100, Color3.fromRGB(120, 255, 120)) 
+local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax = makeSlider("Walk Speed:", contentY, walkSpeed, 16, 100, Color3.fromRGB(120, 255, 120)) 
 contentY = contentY + 34
 
-local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax = makeSlider("Jump Power:", contentY, jumpPower, 0, 200, Color3.fromRGB(255, 120, 120)) 
+local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax = makeSlider("Jump Power:", contentY, jumpPower, 50, 200, Color3.fromRGB(255, 120, 120)) 
 contentY = contentY + 34
 
 -- Panel animasyon
@@ -191,6 +191,18 @@ local function getOriginalValues()
         if humanoid then
             originalWalkSpeed = humanoid.WalkSpeed
             originalJumpPower = humanoid.JumpPower
+            
+            -- Minimum değerleri orijinal değerlere ayarla
+            walkMin = originalWalkSpeed
+            jumpMin = originalJumpPower
+            
+            -- Eğer mevcut değerler minimumdan düşükse, minimuma ayarla
+            if walkSpeed < originalWalkSpeed then
+                walkSpeed = originalWalkSpeed
+            end
+            if jumpPower < originalJumpPower then
+                jumpPower = originalJumpPower
+            end
         end
     end
 end
@@ -296,48 +308,25 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Görünmezlik fonksiyonu
+-- Görünmezlik fonksiyonu - SERVER SIDE GEREKİYOR
 local function toggleInvisibility()
     invisible = not invisible
     local character = player.Character
     
     if character then
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") or part:IsA("MeshPart") then
-                if invisible then
-                    part.Transparency = 1
-                    -- Decal'leri de gizle
-                    for _, decal in pairs(part:GetChildren()) do
-                        if decal:IsA("Decal") then
-                            decal.Transparency = 1
-                        end
-                    end
-                else
-                    part.Transparency = 0
-                    -- Decal'leri geri getir
-                    for _, decal in pairs(part:GetChildren()) do
-                        if decal:IsA("Decal") then
-                            decal.Transparency = 0
-                        end
-                    end
-                end
-            elseif part:IsA("Accessory") and part:FindFirstChild("Handle") then
-                local handle = part.Handle
-                if invisible then
-                    handle.Transparency = 1
-                else
-                    handle.Transparency = 0
+        if invisible then
+            -- Karakteri tamamen gizle (sadece client tarafında)
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") or part:IsA("MeshPart") then
+                    part.LocalTransparencyModifier = 1
                 end
             end
-        end
-        
-        -- Humanoid'i de gizle/göster (bazı oyunlarda gerekli)
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid then
-            if invisible then
-                humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-            else
-                humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+        else
+            -- Karakteri geri göster
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") or part:IsA("MeshPart") then
+                    part.LocalTransparencyModifier = 0
+                end
             end
         end
     end
@@ -483,10 +472,6 @@ player.CharacterAdded:Connect(function(character)
     -- Orijinal değerleri al
     getOriginalValues()
     
-    -- Slider değerlerini güncelle
-    walkSpeed = originalWalkSpeed
-    jumpPower = originalJumpPower
-    
     -- UI'ı güncelle
     walkLabel.Text = "Walk Speed: " .. walkSpeed
     jumpLabel.Text = "Jump Power: " .. jumpPower
@@ -508,9 +493,7 @@ player.CharacterAdded:Connect(function(character)
     
     if invisible then
         wait(0.5)
-        -- Görünmezlik durumunu sıfırla
-        invisible = false
-        invisibleBtn.Text = "Görünmezlik: Kapalı"
+        toggleInvisibility()
     end
 end)
 
