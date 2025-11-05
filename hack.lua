@@ -10,8 +10,9 @@ local flying, noclip, invisible = false, false, false
 local flySpeed = 50
 local walkSpeed = 16
 local jumpPower = 50
-local control = {F = 0, B = 0, L = 0, R = 0}
+local control = {F = 0, B = 0, L = 0, R = 0, U = 0, D = 0}
 local bodyGyro, bodyVelocity
+local flyKey = Enum.KeyCode.F -- Fly açma/kapama tuşu
 
 -- Orijinal değerleri sakla
 local originalWalkSpeed = 16
@@ -41,7 +42,7 @@ mainButton.Draggable = true
 
 -- Panel
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 400, 0, 420)
+panel.Size = UDim2.new(0, 400, 0, 450)
 panel.Position = UDim2.new(0.5, -200, -1, 0)
 panel.AnchorPoint = Vector2.new(0.5, 0)
 panel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -144,7 +145,7 @@ local function makeSlider(text, y, currentVal, minVal, maxVal, color)
 end
 
 -- Butonlar
-local flyBtn = makeButton("Fly: Kapalı", contentY) 
+local flyBtn = makeButton("Fly: Kapalı (F Tuşu)", contentY) 
 contentY = contentY + 52
 
 local noclipBtn = makeButton("Duvardan Geçme: Kapalı", contentY) 
@@ -162,6 +163,10 @@ contentY = contentY + 34
 
 local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax = makeSlider("Jump Power:", contentY, jumpPower, 50, 200, Color3.fromRGB(255, 120, 120)) 
 contentY = contentY + 34
+
+-- Fly tuş ayarı butonu
+local flyKeyBtn = makeButton("Fly Tuşu: F (Değiştirmek için tıkla)", contentY)
+contentY = contentY + 52
 
 -- Panel animasyon
 local panelOpen = false
@@ -242,6 +247,8 @@ local function startFly()
         humanoid.PlatformStand = true
     end
     
+    flyBtn.Text = "Fly: Açık (F Tuşu)"
+    
     -- Fly render loop
     local flyConnection
     flyConnection = RunService.Heartbeat:Connect(function()
@@ -251,28 +258,38 @@ local function startFly()
         end
         
         local cam = workspace.CurrentCamera
-        bodyGyro.CFrame = cam.CFrame
         
         -- Tüm yönler için kontrol
         local direction = Vector3.new()
-        if control.F > 0 then direction = direction + cam.CFrame.LookVector end
-        if control.B > 0 then direction = direction - cam.CFrame.LookVector end
-        if control.L > 0 then direction = direction - cam.CFrame.RightVector end
-        if control.R > 0 then direction = direction + cam.CFrame.RightVector end
         
-        -- Y ekseni için kontrol (Space ve Shift)
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            direction = direction + Vector3.new(0, 1, 0)
+        -- İleri/Geri (W/S)
+        if control.F > 0 then 
+            direction = direction + cam.CFrame.LookVector 
+        elseif control.B > 0 then 
+            direction = direction - cam.CFrame.LookVector 
         end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift) then
+        
+        -- Sağ/Sol (D/A)
+        if control.R > 0 then 
+            direction = direction + cam.CFrame.RightVector 
+        elseif control.L > 0 then 
+            direction = direction - cam.CFrame.RightVector 
+        end
+        
+        -- Yukarı/Aşağı (Space/Shift)
+        if control.U > 0 then 
+            direction = direction + Vector3.new(0, 1, 0)
+        elseif control.D > 0 then 
             direction = direction + Vector3.new(0, -1, 0)
         end
         
+        -- Hızı uygula
         if direction.Magnitude > 0 then
             direction = direction.Unit
         end
         
         bodyVelocity.Velocity = direction * flySpeed
+        bodyGyro.CFrame = cam.CFrame
     end)
 end
 
@@ -295,7 +312,78 @@ local function stopFly()
             bodyVelocity = nil
         end
     end
+    
+    flyBtn.Text = "Fly: Kapalı (F Tuşu)"
 end
+
+-- Fly tuşu değiştirme
+local waitingForFlyKey = false
+flyKeyBtn.MouseButton1Click:Connect(function()
+    if not waitingForFlyKey then
+        waitingForFlyKey = true
+        flyKeyBtn.Text = "Yeni tuşa basın..."
+        
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                flyKey = input.KeyCode
+                flyKeyBtn.Text = "Fly Tuşu: " .. tostring(flyKey):gsub("Enum.KeyCode.", "") .. " (Değiştirmek için tıkla)"
+                flyBtn.Text = "Fly: Kapalı (" .. tostring(flyKey):gsub("Enum.KeyCode.", "") .. " Tuşu)"
+                waitingForFlyKey = false
+                connection:Disconnect()
+            end
+        end)
+    end
+end)
+
+-- Fly tuş kontrolü
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == flyKey then
+        if flying then
+            stopFly()
+        else
+            startFly()
+        end
+    end
+    
+    -- Fly kontrolleri
+    if flying then
+        if input.KeyCode == Enum.KeyCode.W then
+            control.F = 1
+        elseif input.KeyCode == Enum.KeyCode.S then
+            control.B = 1
+        elseif input.KeyCode == Enum.KeyCode.A then
+            control.L = 1
+        elseif input.KeyCode == Enum.KeyCode.D then
+            control.R = 1
+        elseif input.KeyCode == Enum.KeyCode.Space then
+            control.U = 1
+        elseif input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+            control.D = 1
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    -- Fly kontrolleri
+    if input.KeyCode == Enum.KeyCode.W then
+        control.F = 0
+    elseif input.KeyCode == Enum.KeyCode.S then
+        control.B = 0
+    elseif input.KeyCode == Enum.KeyCode.A then
+        control.L = 0
+    elseif input.KeyCode == Enum.KeyCode.D then
+        control.R = 0
+    elseif input.KeyCode == Enum.KeyCode.Space then
+        control.U = 0
+    elseif input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+        control.D = 0
+    end
+end)
 
 -- Noclip fonksiyonu
 RunService.Stepped:Connect(function()
@@ -308,7 +396,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Görünmezlik fonksiyonu - SERVER SIDE GEREKİYOR
+-- Görünmezlik fonksiyonu
 local function toggleInvisibility()
     invisible = not invisible
     local character = player.Character
@@ -347,41 +435,12 @@ local function updateJumpPower()
     end
 end
 
--- Klavye kontrolleri
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.W then
-        control.F = 1
-    elseif input.KeyCode == Enum.KeyCode.S then
-        control.B = -1
-    elseif input.KeyCode == Enum.KeyCode.A then
-        control.L = -1
-    elseif input.KeyCode == Enum.KeyCode.D then
-        control.R = 1
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.W then
-        control.F = 0
-    elseif input.KeyCode == Enum.KeyCode.S then
-        control.B = 0
-    elseif input.KeyCode == Enum.KeyCode.A then
-        control.L = 0
-    elseif input.KeyCode == Enum.KeyCode.D then
-        control.R = 0
-    end
-end)
-
 -- Buton eventleri
 flyBtn.MouseButton1Click:Connect(function()
     if flying then
         stopFly()
-        flyBtn.Text = "Fly: Kapalı"
     else
         startFly()
-        flyBtn.Text = "Fly: Açık"
     end
 end)
 
