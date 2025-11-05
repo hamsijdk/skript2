@@ -1,5 +1,4 @@
--- Srox Hack GUI (draggable, Fly, Fly Speed, Noclip)
--- LocalScript olarak StarterPlayerScripts içine koy
+-- Srox Hack GUI (tam çalışan) | LocalScript
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -7,7 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
--- State
+-- Durumlar
 local flying = false
 local noclip = false
 local flySpeed = 50
@@ -19,7 +18,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Ana buton (Srox Hack)
+-- Ana buton
 local mainButton = Instance.new("TextButton")
 mainButton.Size = UDim2.new(0,120,0,50)
 mainButton.Position = UDim2.new(0,50,0,150)
@@ -32,15 +31,11 @@ mainButton.BorderSizePixel = 0
 mainButton.AutoButtonColor = true
 mainButton.Active = true
 mainButton.Parent = screenGui
-
-local mbCorner = Instance.new("UICorner")
+local mbCorner = Instance.new("UICorner", mainButton)
 mbCorner.CornerRadius = UDim.new(0,15)
-mbCorner.Parent = mainButton
-
--- Ana buton draggable
 mainButton.Draggable = true
 
--- Panel (gizli başlar)
+-- Panel
 local panel = Instance.new("Frame")
 panel.Size = UDim2.new(0,400,0,300)
 panel.Position = UDim2.new(0.5,-200,-1,0)
@@ -49,18 +44,15 @@ panel.BackgroundColor3 = Color3.fromRGB(30,30,30)
 panel.BorderSizePixel = 0
 panel.Parent = screenGui
 panel.ClipsDescendants = true
-
 local panelCorner = Instance.new("UICorner", panel)
 panelCorner.CornerRadius = UDim.new(0,10)
 
 -- Panel draggable
 local draggingPanel = false
 local dragInput, dragStart, startPos
-
 local titleBar = Instance.new("Frame", panel)
 titleBar.Size = UDim2.new(1,0,0,36)
 titleBar.BackgroundTransparency = 1
-
 titleBar.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		draggingPanel = true
@@ -68,36 +60,33 @@ titleBar.InputBegan:Connect(function(input)
 		startPos = panel.Position
 	end
 end)
-
 titleBar.InputChanged:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement then
 		dragInput = input
 	end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
 	if draggingPanel and input == dragInput then
 		local delta = input.Position - dragStart
 		panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 	end
 end)
-
 UserInputService.InputEnded:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		draggingPanel = false
 	end
 end)
 
--- Panel üst başlık yazısı
+-- Başlık yazısı
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1,0,1,0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Srox Hack  •  Yapan: efeakincipo"
+titleLabel.Text = "Srox Hack  •  efeakincipo"
 titleLabel.TextColor3 = Color3.new(1,1,1)
 titleLabel.Font = Enum.Font.GothamSemibold
 titleLabel.TextSize = 16
 
--- Panel Kapat butonu
+-- Kapat butonu
 local closeBtn = Instance.new("TextButton", titleBar)
 closeBtn.Size = UDim2.new(0,28,0,24)
 closeBtn.Position = UDim2.new(1,-34,0,6)
@@ -110,7 +99,7 @@ closeBtn.BorderSizePixel = 0
 local closeCorner = Instance.new("UICorner", closeBtn)
 closeCorner.CornerRadius = UDim.new(0,6)
 
--- İçerik fonksiyonu
+-- Panel içerik
 local contentY = 46
 local function makeButton(text, y)
 	local btn = Instance.new("TextButton", panel)
@@ -130,7 +119,6 @@ end
 local flyBtn = makeButton("Fly: Kapalı", contentY)
 contentY = contentY + 52
 
--- Fly hız slider
 local speedLabel = Instance.new("TextLabel", panel)
 speedLabel.Size = UDim2.new(0,360,0,20)
 speedLabel.Position = UDim2.new(0.5,-180,0,contentY)
@@ -157,9 +145,8 @@ sliderFillCorner.CornerRadius = UDim.new(0,9)
 
 contentY = contentY + 34
 local noclipBtn = makeButton("Duvardan Geçme: Kapalı", contentY)
-contentY = contentY + 52
 
--- Panel aç/kapa animasyonu
+-- Panel animasyon
 local panelOpen = false
 local openTweenInfo = TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local closeTweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
@@ -219,7 +206,7 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
--- Key kontrol
+-- Key input
 UserInputService.InputBegan:Connect(function(inp, gp)
 	if gp then return end
 	if inp.KeyCode == Enum.KeyCode.W then control.F = 1 end
@@ -234,7 +221,7 @@ UserInputService.InputEnded:Connect(function(inp)
 	if inp.KeyCode == Enum.KeyCode.D then control.R = 0 end
 end)
 
--- Butonlar
+-- UI etkileşimleri
 flyBtn.MouseButton1Click:Connect(function()
 	if flying then
 		stopFly()
@@ -250,7 +237,7 @@ noclipBtn.MouseButton1Click:Connect(function()
 	noclipBtn.Text = noclip and "Duvardan Geçme: Açık" or "Duvardan Geçme: Kapalı"
 end)
 
--- Slider interaktif
+-- Slider
 local draggingSlider = false
 sliderBG.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -272,7 +259,7 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
--- Oyuncu spawn olursa fly reset
+-- Spawn olunca fly reset
 player.CharacterAdded:Connect(function()
 	wait(0.2)
 	if flying then
