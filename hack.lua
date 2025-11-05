@@ -12,7 +12,7 @@ local walkSpeed = 16
 local jumpPower = 50
 local control = {F = 0, B = 0, L = 0, R = 0, U = 0, D = 0}
 local bodyGyro, bodyVelocity
-local flyKey = Enum.KeyCode.F -- Fly açma/kapama tuşu
+local flyKey = Enum.KeyCode.F
 
 -- Orijinal değerleri sakla
 local originalWalkSpeed = 16
@@ -86,7 +86,7 @@ end)
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, 0, 1, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Frox Hack  •  efeakincipo"
+titleLabel.Text = "Frox Hack  •  Editor: efeakincipo"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamSemibold
 titleLabel.TextSize = 18
@@ -216,11 +216,9 @@ local function getOriginalValues()
             originalWalkSpeed = humanoid.WalkSpeed
             originalJumpPower = humanoid.JumpPower
             
-            -- Minimum değerleri orijinal değerlere ayarla
             walkMin = originalWalkSpeed
             jumpMin = originalJumpPower
             
-            -- Eğer mevcut değerler minimumdan düşükse, minimuma ayarla
             if walkSpeed < originalWalkSpeed then
                 walkSpeed = originalWalkSpeed
             end
@@ -245,11 +243,9 @@ local function startFly()
     local humanoid = character:FindFirstChild("Humanoid")
     local rootPart = character.HumanoidRootPart
     
-    -- Eski fly bileşenlerini temizle
     if bodyGyro then bodyGyro:Destroy() end
     if bodyVelocity then bodyVelocity:Destroy() end
     
-    -- Yeni fly bileşenleri
     bodyGyro = Instance.new("BodyGyro")
     bodyVelocity = Instance.new("BodyVelocity")
     
@@ -268,7 +264,6 @@ local function startFly()
     
     flyBtn.Text = "Fly: Açık (F Tuşu)"
     
-    -- Fly render loop
     local flyConnection
     flyConnection = RunService.Heartbeat:Connect(function()
         if not flying or not character or not rootPart.Parent then
@@ -278,31 +273,26 @@ local function startFly()
         
         local cam = workspace.CurrentCamera
         
-        -- Tüm yönler için kontrol
         local direction = Vector3.new()
         
-        -- İleri/Geri (W/S)
         if control.F > 0 then 
             direction = direction + cam.CFrame.LookVector 
         elseif control.B > 0 then 
             direction = direction - cam.CFrame.LookVector 
         end
         
-        -- Sağ/Sol (D/A)
         if control.R > 0 then 
             direction = direction + cam.CFrame.RightVector 
         elseif control.L > 0 then 
             direction = direction - cam.CFrame.RightVector 
         end
         
-        -- Yukarı/Aşağı (Space/Shift)
         if control.U > 0 then 
             direction = direction + Vector3.new(0, 1, 0)
         elseif control.D > 0 then 
             direction = direction + Vector3.new(0, -1, 0)
         end
         
-        -- Hızı uygula
         if direction.Magnitude > 0 then
             direction = direction.Unit
         end
@@ -358,7 +348,110 @@ flyKeyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Fly tuş kontrolü
+-- GELİŞMİŞ GÖRÜNMEZLİK SİSTEMİ
+local function toggleInvisibility()
+    invisible = not invisible
+    local character = player.Character
+    
+    if character then
+        if invisible then
+            -- 1. YÖNTEM: Character'i tamamen gizleme
+            character.Parent = nil
+            
+            -- 2. YÖNTEM: Tüm partları çok küçük yap
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") or part:IsA("MeshPart") then
+                    part.Transparency = 1
+                    part.CanCollide = false
+                    part.LocalTransparencyModifier = 1
+                    -- Part'ları mikroskobik boyuta getir
+                    part.Size = Vector3.new(0.01, 0.01, 0.01)
+                end
+            end
+            
+            -- 3. YÖNTEM: Humanoid'i devre dışı bırak
+            local humanoid = character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+            end
+            
+            -- 4. YÖNTEM: Tüm efektleri kapat
+            for _, effect in pairs(character:GetDescendants()) do
+                if effect:IsA("ParticleEmitter") or effect:IsA("Trail") then
+                    effect.Enabled = false
+                end
+            end
+            
+        else
+            -- Görünür yap
+            character.Parent = workspace
+            
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") or part:IsA("MeshPart") then
+                    part.Transparency = 0
+                    part.CanCollide = true
+                    part.LocalTransparencyModifier = 0
+                    -- Orijinal boyutuna geri getir
+                    if part.Name == "Head" then
+                        part.Size = Vector3.new(2, 1, 1)
+                    elseif part.Name == "Torso" then
+                        part.Size = Vector3.new(2, 2, 1)
+                    elseif part.Name == "LeftArm" or part.Name == "RightArm" then
+                        part.Size = Vector3.new(1, 2, 1)
+                    elseif part.Name == "LeftLeg" or part.Name == "RightLeg" then
+                        part.Size = Vector3.new(1, 2, 1)
+                    else
+                        part.Size = Vector3.new(1, 1, 1)
+                    end
+                end
+            end
+            
+            local humanoid = character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+            end
+            
+            for _, effect in pairs(character:GetDescendants()) do
+                if effect:IsA("ParticleEmitter") or effect:IsA("Trail") then
+                    effect.Enabled = true
+                end
+            end
+        end
+    end
+    
+    invisibleBtn.Text = invisible and "Görünmezlik: Açık" or "Görünmezlik: Kapalı"
+end
+
+-- ALTERNATİF GÖRÜNMEZLİK YÖNTEMİ (Remote kullanarak)
+local function tryServerSideInvisibility()
+    -- Bu yöntem server scripti gerektirir
+    local success, result = pcall(function()
+        -- Server'a görünmezlik isteği gönder
+        local remoteEvent = Instance.new("RemoteEvent")
+        remoteEvent.Name = "FroxInvisibility"
+        remoteEvent.OnServerEvent:Connect(function(plr, state)
+            if plr == player then
+                local char = plr.Character
+                if char then
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.Transparency = state and 1 or 0
+                            part.CanCollide = not state
+                        end
+                    end
+                end
+            end
+        end)
+        remoteEvent.Parent = game:GetService("ReplicatedStorage")
+    end)
+    
+    if not success then
+        -- Server-side yöntem başarısız olursa client-side yöntemi kullan
+        toggleInvisibility()
+    end
+end
+
+-- Klavye kontrolleri
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
@@ -370,7 +463,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
     
-    -- Fly kontrolleri
     if flying then
         if input.KeyCode == Enum.KeyCode.W then
             control.F = 1
@@ -389,7 +481,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    -- Fly kontrolleri
     if input.KeyCode == Enum.KeyCode.W then
         control.F = 0
     elseif input.KeyCode == Enum.KeyCode.S then
@@ -415,32 +506,6 @@ RunService.Stepped:Connect(function()
         end
     end
 end)
-
--- Görünmezlik fonksiyonu
-local function toggleInvisibility()
-    invisible = not invisible
-    local character = player.Character
-    
-    if character then
-        if invisible then
-            -- Karakteri tamamen gizle (sadece client tarafında)
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") or part:IsA("MeshPart") then
-                    part.LocalTransparencyModifier = 1
-                end
-            end
-        else
-            -- Karakteri geri göster
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") or part:IsA("MeshPart") then
-                    part.LocalTransparencyModifier = 0
-                end
-            end
-        end
-    end
-    
-    invisibleBtn.Text = invisible and "Görünmezlik: Açık" or "Görünmezlik: Kapalı"
-end
 
 -- Hareket hızı fonksiyonları
 local function updateWalkSpeed()
@@ -469,9 +534,12 @@ noclipBtn.MouseButton1Click:Connect(function()
     noclipBtn.Text = noclip and "Duvardan Geçme: Açık" or "Duvardan Geçme: Kapalı"
 end)
 
-invisibleBtn.MouseButton1Click:Connect(toggleInvisibility)
+invisibleBtn.MouseButton1Click:Connect(function()
+    -- Önce server-side yöntemi dene, olmazsa client-side
+    tryServerSideInvisibility()
+end)
 
--- Slider eventleri
+-- Slider eventleri (önceki kodla aynı)
 local draggingFly = false
 flySliderBG.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -548,10 +616,8 @@ player.CharacterAdded:Connect(function(character)
     character:WaitForChild("Humanoid")
     wait(0.5)
     
-    -- Orijinal değerleri al
     getOriginalValues()
     
-    -- UI'ı güncelle
     walkLabel.Text = "Yürüme Hızı : " .. walkSpeed
     jumpLabel.Text = "Zıplama Gücü : " .. jumpPower
     
@@ -572,7 +638,7 @@ player.CharacterAdded:Connect(function(character)
     
     if invisible then
         wait(0.5)
-        toggleInvisibility()
+        tryServerSideInvisibility()
     end
 end)
 
