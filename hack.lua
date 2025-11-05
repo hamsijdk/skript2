@@ -13,6 +13,10 @@ local jumpPower = 50
 local control = {F = 0, B = 0, L = 0, R = 0}
 local bodyGyro, bodyVelocity
 
+-- Orijinal değerleri sakla
+local originalWalkSpeed = 16
+local originalJumpPower = 50
+
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.ResetOnSpawn = false
@@ -115,12 +119,12 @@ local function makeButton(text, y)
     return btn
 end
 
-local function makeSlider(text, y, maxVal, color)
+local function makeSlider(text, y, currentVal, minVal, maxVal, color)
     local lbl = Instance.new("TextLabel", panel)
     lbl.Size = UDim2.new(0, 360, 0, 20)
     lbl.Position = UDim2.new(0.5, -180, 0, y)
     lbl.BackgroundTransparency = 1
-    lbl.Text = text .. " " .. (maxVal / 2)
+    lbl.Text = text .. " " .. currentVal
     lbl.Font = Enum.Font.Gotham
     lbl.TextSize = 14
     lbl.TextColor3 = color
@@ -132,10 +136,11 @@ local function makeSlider(text, y, maxVal, color)
     bg.BorderSizePixel = 0
     Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 9)
     local fill = Instance.new("Frame", bg)
-    fill.Size = UDim2.new(maxVal / 200, 0, 1, 0)
+    local frac = (currentVal - minVal) / (maxVal - minVal)
+    fill.Size = UDim2.new(frac, 0, 1, 0)
     fill.BackgroundColor3 = color
     Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 9)
-    return lbl, bg, fill
+    return lbl, bg, fill, minVal, maxVal
 end
 
 -- Butonlar
@@ -149,13 +154,13 @@ local invisibleBtn = makeButton("Görünmezlik: Kapalı", contentY)
 contentY = contentY + 52
 
 -- Sliderlar
-local flyLabel, flySliderBG, flySliderFill = makeSlider("Fly Hızı:", contentY, flySpeed, Color3.fromRGB(120, 120, 255)) 
+local flyLabel, flySliderBG, flySliderFill, flyMin, flyMax = makeSlider("Fly Hızı:", contentY, flySpeed, 1, 200, Color3.fromRGB(120, 120, 255)) 
 contentY = contentY + 34
 
-local walkLabel, walkSliderBG, walkSliderFill = makeSlider("Walk Speed:", contentY, walkSpeed, Color3.fromRGB(120, 255, 120)) 
+local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax = makeSlider("Walk Speed:", contentY, walkSpeed, 0, 100, Color3.fromRGB(120, 255, 120)) 
 contentY = contentY + 34
 
-local jumpLabel, jumpSliderBG, jumpSliderFill = makeSlider("Jump Power:", contentY, jumpPower, Color3.fromRGB(255, 120, 120)) 
+local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax = makeSlider("Jump Power:", contentY, jumpPower, 0, 200, Color3.fromRGB(255, 120, 120)) 
 contentY = contentY + 34
 
 -- Panel animasyon
@@ -177,6 +182,18 @@ end
 
 mainButton.MouseButton1Click:Connect(togglePanel)
 closeBtn.MouseButton1Click:Connect(togglePanel)
+
+-- Orijinal değerleri al
+local function getOriginalValues()
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            originalWalkSpeed = humanoid.WalkSpeed
+            originalJumpPower = humanoid.JumpPower
+        end
+    end
+end
 
 -- Fly fonksiyonu
 local function startFly()
@@ -224,17 +241,26 @@ local function startFly()
         local cam = workspace.CurrentCamera
         bodyGyro.CFrame = cam.CFrame
         
+        -- Tüm yönler için kontrol
         local direction = Vector3.new()
         if control.F > 0 then direction = direction + cam.CFrame.LookVector end
         if control.B > 0 then direction = direction - cam.CFrame.LookVector end
         if control.L > 0 then direction = direction - cam.CFrame.RightVector end
         if control.R > 0 then direction = direction + cam.CFrame.RightVector end
         
+        -- Y ekseni için kontrol (Space ve Shift)
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            direction = direction + Vector3.new(0, 1, 0)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift) then
+            direction = direction + Vector3.new(0, -1, 0)
+        end
+        
         if direction.Magnitude > 0 then
             direction = direction.Unit
         end
         
-        bodyVelocity.Velocity = direction * flySpeed + Vector3.new(0, 0.5, 0)
+        bodyVelocity.Velocity = direction * flySpeed
     end)
 end
 
@@ -277,16 +303,22 @@ local function toggleInvisibility()
     
     if character then
         for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
+            if part:IsA("BasePart") or part:IsA("MeshPart") then
                 if invisible then
                     part.Transparency = 1
-                    if part:FindFirstChildOfClass("Decal") then
-                        part:FindFirstChildOfClass("Decal").Transparency = 1
+                    -- Decal'leri de gizle
+                    for _, decal in pairs(part:GetChildren()) do
+                        if decal:IsA("Decal") then
+                            decal.Transparency = 1
+                        end
                     end
                 else
                     part.Transparency = 0
-                    if part:FindFirstChildOfClass("Decal") then
-                        part:FindFirstChildOfClass("Decal").Transparency = 0
+                    -- Decal'leri geri getir
+                    for _, decal in pairs(part:GetChildren()) do
+                        if decal:IsA("Decal") then
+                            decal.Transparency = 0
+                        end
                     end
                 end
             elseif part:IsA("Accessory") and part:FindFirstChild("Handle") then
@@ -296,6 +328,16 @@ local function toggleInvisibility()
                 else
                     handle.Transparency = 0
                 end
+            end
+        end
+        
+        -- Humanoid'i de gizle/göster (bazı oyunlarda gerekli)
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            if invisible then
+                humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+            else
+                humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
             end
         end
     end
@@ -373,7 +415,7 @@ UserInputService.InputChanged:Connect(function(input)
     if draggingFly and input.UserInputType == Enum.UserInputType.MouseMovement then
         local x = math.clamp(input.Position.X - flySliderBG.AbsolutePosition.X, 0, flySliderBG.AbsoluteSize.X)
         local frac = x / flySliderBG.AbsoluteSize.X
-        flySpeed = math.max(1, math.floor(frac * 200))
+        flySpeed = math.floor(flyMin + frac * (flyMax - flyMin))
         flySliderFill.Size = UDim2.new(frac, 0, 1, 0)
         flyLabel.Text = "Fly Hızı: " .. flySpeed
     end
@@ -396,7 +438,7 @@ UserInputService.InputChanged:Connect(function(input)
     if draggingWalk and input.UserInputType == Enum.UserInputType.MouseMovement then
         local x = math.clamp(input.Position.X - walkSliderBG.AbsolutePosition.X, 0, walkSliderBG.AbsoluteSize.X)
         local frac = x / walkSliderBG.AbsoluteSize.X
-        walkSpeed = math.max(8, math.floor(frac * 100))
+        walkSpeed = math.floor(walkMin + frac * (walkMax - walkMin))
         walkSliderFill.Size = UDim2.new(frac, 0, 1, 0)
         walkLabel.Text = "Walk Speed: " .. walkSpeed
         updateWalkSpeed()
@@ -420,7 +462,7 @@ UserInputService.InputChanged:Connect(function(input)
     if draggingJump and input.UserInputType == Enum.UserInputType.MouseMovement then
         local x = math.clamp(input.Position.X - jumpSliderBG.AbsolutePosition.X, 0, jumpSliderBG.AbsoluteSize.X)
         local frac = x / jumpSliderBG.AbsoluteSize.X
-        jumpPower = math.max(10, math.floor(frac * 200))
+        jumpPower = math.floor(jumpMin + frac * (jumpMax - jumpMin))
         jumpSliderFill.Size = UDim2.new(frac, 0, 1, 0)
         jumpLabel.Text = "Jump Power: " .. jumpPower
         updateJumpPower()
@@ -437,6 +479,24 @@ end)
 player.CharacterAdded:Connect(function(character)
     character:WaitForChild("Humanoid")
     wait(0.5)
+    
+    -- Orijinal değerleri al
+    getOriginalValues()
+    
+    -- Slider değerlerini güncelle
+    walkSpeed = originalWalkSpeed
+    jumpPower = originalJumpPower
+    
+    -- UI'ı güncelle
+    walkLabel.Text = "Walk Speed: " .. walkSpeed
+    jumpLabel.Text = "Jump Power: " .. jumpPower
+    
+    local walkFrac = (walkSpeed - walkMin) / (walkMax - walkMin)
+    local jumpFrac = (jumpPower - jumpMin) / (jumpMax - jumpMin)
+    
+    walkSliderFill.Size = UDim2.new(walkFrac, 0, 1, 0)
+    jumpSliderFill.Size = UDim2.new(jumpFrac, 0, 1, 0)
+    
     updateWalkSpeed()
     updateJumpPower()
     
@@ -448,11 +508,14 @@ player.CharacterAdded:Connect(function(character)
     
     if invisible then
         wait(0.5)
-        toggleInvisibility()
+        -- Görünmezlik durumunu sıfırla
+        invisible = false
+        invisibleBtn.Text = "Görünmezlik: Kapalı"
     end
 end)
 
 -- Başlangıç ayarları
+getOriginalValues()
 if player.Character then
     updateWalkSpeed()
     updateJumpPower()
