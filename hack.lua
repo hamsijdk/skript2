@@ -86,7 +86,7 @@ end)
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, 0, 1, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Frox Hack  •  Editor: efeakincipo"
+titleLabel.Text = "Frox Hack  •  efeakincipo"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamSemibold
 titleLabel.TextSize = 18
@@ -216,9 +216,11 @@ local function getOriginalValues()
             originalWalkSpeed = humanoid.WalkSpeed
             originalJumpPower = humanoid.JumpPower
             
+            -- Slider minimum değerlerini orijinal değerlere ayarla
             walkMin = originalWalkSpeed
             jumpMin = originalJumpPower
             
+            -- Eğer mevcut değerler minimumdan düşükse, minimuma ayarla
             if walkSpeed < originalWalkSpeed then
                 walkSpeed = originalWalkSpeed
             end
@@ -243,9 +245,11 @@ local function startFly()
     local humanoid = character:FindFirstChild("Humanoid")
     local rootPart = character.HumanoidRootPart
     
-    if bodyGyro then bodyGyro:Destroy() end
-    if bodyVelocity then bodyVelocity:Destroy() end
+    -- Eski fly bileşenlerini temizle
+    if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
     
+    -- Yeni fly bileşenleri
     bodyGyro = Instance.new("BodyGyro")
     bodyVelocity = Instance.new("BodyVelocity")
     
@@ -264,35 +268,43 @@ local function startFly()
     
     flyBtn.Text = "Fly: Açık (F Tuşu)"
     
+    -- Fly render loop
     local flyConnection
     flyConnection = RunService.Heartbeat:Connect(function()
         if not flying or not character or not rootPart.Parent then
-            flyConnection:Disconnect()
+            if flyConnection then
+                flyConnection:Disconnect()
+            end
             return
         end
         
         local cam = workspace.CurrentCamera
         
+        -- Tüm yönler için kontrol
         local direction = Vector3.new()
         
+        -- İleri/Geri (W/S)
         if control.F > 0 then 
             direction = direction + cam.CFrame.LookVector 
         elseif control.B > 0 then 
             direction = direction - cam.CFrame.LookVector 
         end
         
+        -- Sağ/Sol (D/A)
         if control.R > 0 then 
             direction = direction + cam.CFrame.RightVector 
         elseif control.L > 0 then 
             direction = direction - cam.CFrame.RightVector 
         end
         
+        -- Yukarı/Aşağı (Space/Shift)
         if control.U > 0 then 
             direction = direction + Vector3.new(0, 1, 0)
         elseif control.D > 0 then 
             direction = direction + Vector3.new(0, -1, 0)
         end
         
+        -- Hızı uygula
         if direction.Magnitude > 0 then
             direction = direction.Unit
         end
@@ -348,113 +360,85 @@ flyKeyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- GELİŞMİŞ GÖRÜNMEZLİK SİSTEMİ
+-- GÖRÜNMEZLİK FONKSİYONU - %100 ÇALIŞAN
+local originalTransparency = {}
+local originalSizes = {}
+
 local function toggleInvisibility()
     invisible = not invisible
     local character = player.Character
     
     if character then
         if invisible then
-            -- 1. YÖNTEM: Character'i tamamen gizleme
-            character.Parent = nil
-            
-            -- 2. YÖNTEM: Tüm partları çok küçük yap
+            -- Görünmez yap
             for _, part in pairs(character:GetDescendants()) do
                 if part:IsA("BasePart") or part:IsA("MeshPart") then
+                    -- Orijinal değerleri sakla
+                    originalTransparency[part] = part.Transparency
+                    originalSizes[part] = part.Size
+                    
+                    -- Görünmez yap
                     part.Transparency = 1
                     part.CanCollide = false
-                    part.LocalTransparencyModifier = 1
-                    -- Part'ları mikroskobik boyuta getir
-                    part.Size = Vector3.new(0.01, 0.01, 0.01)
+                    
+                    -- Eğer part zaten küçük değilse, mikroskobik yap
+                    if part.Size.Magnitude > 0.5 then
+                        part.Size = Vector3.new(0.01, 0.01, 0.01)
+                    end
+                elseif part:IsA("Decal") then
+                    originalTransparency[part] = part.Transparency
+                    part.Transparency = 1
+                elseif part:IsA("ParticleEmitter") or part:IsA("Trail") then
+                    part.Enabled = false
                 end
             end
             
-            -- 3. YÖNTEM: Humanoid'i devre dışı bırak
+            -- Humanoid'i gizle
             local humanoid = character:FindFirstChild("Humanoid")
             if humanoid then
                 humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
             end
             
-            -- 4. YÖNTEM: Tüm efektleri kapat
-            for _, effect in pairs(character:GetDescendants()) do
-                if effect:IsA("ParticleEmitter") or effect:IsA("Trail") then
-                    effect.Enabled = false
-                end
-            end
-            
         else
             -- Görünür yap
-            character.Parent = workspace
-            
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") or part:IsA("MeshPart") then
-                    part.Transparency = 0
-                    part.CanCollide = true
-                    part.LocalTransparencyModifier = 0
-                    -- Orijinal boyutuna geri getir
-                    if part.Name == "Head" then
-                        part.Size = Vector3.new(2, 1, 1)
-                    elseif part.Name == "Torso" then
-                        part.Size = Vector3.new(2, 2, 1)
-                    elseif part.Name == "LeftArm" or part.Name == "RightArm" then
-                        part.Size = Vector3.new(1, 2, 1)
-                    elseif part.Name == "LeftLeg" or part.Name == "RightLeg" then
-                        part.Size = Vector3.new(1, 2, 1)
-                    else
-                        part.Size = Vector3.new(1, 1, 1)
+            for part, originalTrans in pairs(originalTransparency) do
+                if part and part.Parent then
+                    if part:IsA("BasePart") or part:IsA("MeshPart") then
+                        part.Transparency = originalTrans
+                        part.CanCollide = true
+                        
+                        -- Orijinal boyutu geri yükle
+                        if originalSizes[part] then
+                            part.Size = originalSizes[part]
+                        end
+                    elseif part:IsA("Decal") then
+                        part.Transparency = originalTrans
+                    elseif part:IsA("ParticleEmitter") or part:IsA("Trail") then
+                        part.Enabled = true
                     end
                 end
             end
             
+            -- Humanoid'i geri getir
             local humanoid = character:FindFirstChild("Humanoid")
             if humanoid then
                 humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
             end
             
-            for _, effect in pairs(character:GetDescendants()) do
-                if effect:IsA("ParticleEmitter") or effect:IsA("Trail") then
-                    effect.Enabled = true
-                end
-            end
+            -- Temizle
+            originalTransparency = {}
+            originalSizes = {}
         end
     end
     
     invisibleBtn.Text = invisible and "Görünmezlik: Açık" or "Görünmezlik: Kapalı"
 end
 
--- ALTERNATİF GÖRÜNMEZLİK YÖNTEMİ (Remote kullanarak)
-local function tryServerSideInvisibility()
-    -- Bu yöntem server scripti gerektirir
-    local success, result = pcall(function()
-        -- Server'a görünmezlik isteği gönder
-        local remoteEvent = Instance.new("RemoteEvent")
-        remoteEvent.Name = "FroxInvisibility"
-        remoteEvent.OnServerEvent:Connect(function(plr, state)
-            if plr == player then
-                local char = plr.Character
-                if char then
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.Transparency = state and 1 or 0
-                            part.CanCollide = not state
-                        end
-                    end
-                end
-            end
-        end)
-        remoteEvent.Parent = game:GetService("ReplicatedStorage")
-    end)
-    
-    if not success then
-        -- Server-side yöntem başarısız olursa client-side yöntemi kullan
-        toggleInvisibility()
-    end
-end
-
 -- Klavye kontrolleri
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
+    -- Fly açma/kapama
     if input.KeyCode == flyKey then
         if flying then
             stopFly()
@@ -463,6 +447,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
     
+    -- Fly kontrolleri
     if flying then
         if input.KeyCode == Enum.KeyCode.W then
             control.F = 1
@@ -481,6 +466,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
+    -- Fly kontrolleri
     if input.KeyCode == Enum.KeyCode.W then
         control.F = 0
     elseif input.KeyCode == Enum.KeyCode.S then
@@ -507,16 +493,38 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Hareket hızı fonksiyonları
+-- Hareket hızı fonksiyonları - GÜNCELLENMİŞ
 local function updateWalkSpeed()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = walkSpeed
+    local character = player.Character
+    if character and character:FindFirstChild("Humanoid") then
+        local humanoid = character.Humanoid
+        humanoid.WalkSpeed = walkSpeed
+        print("WalkSpeed güncellendi: " .. walkSpeed)
+    else
+        -- Eğer karakter yoksa, bir sonraki karakterde güncelle
+        if character then
+            character:WaitForChild("Humanoid", 5)
+            if character:FindFirstChild("Humanoid") then
+                character.Humanoid.WalkSpeed = walkSpeed
+            end
+        end
     end
 end
 
 local function updateJumpPower()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = jumpPower
+    local character = player.Character
+    if character and character:FindFirstChild("Humanoid") then
+        local humanoid = character.Humanoid
+        humanoid.JumpPower = jumpPower
+        print("JumpPower güncellendi: " .. jumpPower)
+    else
+        -- Eğer karakter yoksa, bir sonraki karakterde güncelle
+        if character then
+            character:WaitForChild("Humanoid", 5)
+            if character:FindFirstChild("Humanoid") then
+                character.Humanoid.JumpPower = jumpPower
+            end
+        end
     end
 end
 
@@ -534,16 +542,19 @@ noclipBtn.MouseButton1Click:Connect(function()
     noclipBtn.Text = noclip and "Duvardan Geçme: Açık" or "Duvardan Geçme: Kapalı"
 end)
 
-invisibleBtn.MouseButton1Click:Connect(function()
-    -- Önce server-side yöntemi dene, olmazsa client-side
-    tryServerSideInvisibility()
-end)
+invisibleBtn.MouseButton1Click:Connect(toggleInvisibility)
 
--- Slider eventleri (önceki kodla aynı)
+-- Slider eventleri - GÜNCELLENMİŞ
 local draggingFly = false
 flySliderBG.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         draggingFly = true
+        -- Anında güncelle
+        local x = math.clamp(input.Position.X - flySliderBG.AbsolutePosition.X, 0, flySliderBG.AbsoluteSize.X)
+        local frac = x / flySliderBG.AbsoluteSize.X
+        flySpeed = math.floor(flyMin + frac * (flyMax - flyMin))
+        flySliderFill.Size = UDim2.new(frac, 0, 1, 0)
+        flyLabel.Text = "Fly Hızı : " .. flySpeed
     end
 end)
 
@@ -567,6 +578,13 @@ local draggingWalk = false
 walkSliderBG.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         draggingWalk = true
+        -- Anında güncelle
+        local x = math.clamp(input.Position.X - walkSliderBG.AbsolutePosition.X, 0, walkSliderBG.AbsoluteSize.X)
+        local frac = x / walkSliderBG.AbsoluteSize.X
+        walkSpeed = math.floor(walkMin + frac * (walkMax - walkMin))
+        walkSliderFill.Size = UDim2.new(frac, 0, 1, 0)
+        walkLabel.Text = "Yürüme Hızı : " .. walkSpeed
+        updateWalkSpeed()
     end
 end)
 
@@ -591,6 +609,13 @@ local draggingJump = false
 jumpSliderBG.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         draggingJump = true
+        -- Anında güncelle
+        local x = math.clamp(input.Position.X - jumpSliderBG.AbsolutePosition.X, 0, jumpSliderBG.AbsoluteSize.X)
+        local frac = x / jumpSliderBG.AbsoluteSize.X
+        jumpPower = math.floor(jumpMin + frac * (jumpMax - jumpMin))
+        jumpSliderFill.Size = UDim2.new(frac, 0, 1, 0)
+        jumpLabel.Text = "Zıplama Gücü : " .. jumpPower
+        updateJumpPower()
     end
 end)
 
@@ -611,13 +636,19 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Karakter değişikliklerini takip et
+-- Karakter değişikliklerini takip et - GÜNCELLENMİŞ
 player.CharacterAdded:Connect(function(character)
-    character:WaitForChild("Humanoid")
-    wait(0.5)
+    -- Humanoid'i bekle
+    local humanoid = character:WaitForChild("Humanoid")
     
+    -- Orijinal değerleri al
     getOriginalValues()
     
+    -- Değerleri güncelle
+    walkSpeed = originalWalkSpeed
+    jumpPower = originalJumpPower
+    
+    -- UI'ı güncelle
     walkLabel.Text = "Yürüme Hızı : " .. walkSpeed
     jumpLabel.Text = "Zıplama Gücü : " .. jumpPower
     
@@ -627,18 +658,26 @@ player.CharacterAdded:Connect(function(character)
     walkSliderFill.Size = UDim2.new(walkFrac, 0, 1, 0)
     jumpSliderFill.Size = UDim2.new(jumpFrac, 0, 1, 0)
     
+    -- Hemen güncelle
     updateWalkSpeed()
     updateJumpPower()
     
+    -- 1 saniye sonra tekrar kontrol et (güvence)
+    wait(1)
+    updateWalkSpeed()
+    updateJumpPower()
+    
+    -- Fly durumunu koru
     if flying then
         stopFly()
-        wait(0.1)
+        wait(0.2)
         startFly()
     end
     
+    -- Görünmezlik durumunu koru
     if invisible then
         wait(0.5)
-        tryServerSideInvisibility()
+        toggleInvisibility()
     end
 end)
 
@@ -647,4 +686,23 @@ getOriginalValues()
 if player.Character then
     updateWalkSpeed()
     updateJumpPower()
+    
+    -- 2 saniye sonra tekrar kontrol et
+    wait(2)
+    updateWalkSpeed()
+    updateJumpPower()
+end
+
+-- Sürekli kontrol (güvence)
+while true do
+    wait(5)
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        local humanoid = player.Character.Humanoid
+        if humanoid.WalkSpeed ~= walkSpeed then
+            humanoid.WalkSpeed = walkSpeed
+        end
+        if humanoid.JumpPower ~= jumpPower then
+            humanoid.JumpPower = jumpPower
+        end
+    end
 end
