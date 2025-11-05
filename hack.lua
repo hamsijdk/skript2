@@ -23,7 +23,7 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 local mainButton = Instance.new("TextButton")
 mainButton.Size = UDim2.new(0, 120, 0, 50)
 mainButton.Position = UDim2.new(0, 50, 0, 150)
-mainButton.Text = "Frox Hack"
+mainButton.Text = "Hamisi Hack"
 mainButton.Font = Enum.Font.GothamBold
 mainButton.TextSize = 18
 mainButton.TextColor3 = Color3.new(1, 1, 1)
@@ -82,7 +82,7 @@ end)
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, 0, 1, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Frox Hack  •  efeakincipo"
+titleLabel.Text = "Hamisi Hack  •  Editor: efeakincipo"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamSemibold
 titleLabel.TextSize = 18
