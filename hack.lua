@@ -42,8 +42,8 @@ mainButton.Draggable = true
 
 -- Panel
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 400, 0, 450)
-panel.Position = UDim2.new(0.5, -200, -1, 0)
+panel.Size = UDim2.new(0, 450, 0, 500)
+panel.Position = UDim2.new(0.5, -225, -1, 0)
 panel.AnchorPoint = Vector2.new(0.5, 0)
 panel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 panel.BorderSizePixel = 0
@@ -56,7 +56,7 @@ panelCorner.CornerRadius = UDim.new(0, 10)
 local draggingPanel = false
 local dragInput, dragStart, startPos
 local titleBar = Instance.new("Frame", panel)
-titleBar.Size = UDim2.new(1, 0, 0, 36)
+titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundTransparency = 1
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -89,15 +89,15 @@ titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "Frox Hack  •  efeakincipo"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamSemibold
-titleLabel.TextSize = 16
+titleLabel.TextSize = 18
 
 -- Kapat
 local closeBtn = Instance.new("TextButton", titleBar)
-closeBtn.Size = UDim2.new(0, 28, 0, 24)
-closeBtn.Position = UDim2.new(1, -34, 0, 6)
+closeBtn.Size = UDim2.new(0, 32, 0, 28)
+closeBtn.Position = UDim2.new(1, -38, 0, 6)
 closeBtn.Text = "X"
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
+closeBtn.TextSize = 16
 closeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 closeBtn.TextColor3 = Color3.new(1, 1, 1)
 closeBtn.BorderSizePixel = 0
@@ -105,75 +105,94 @@ local closeCorner = Instance.new("UICorner", closeBtn)
 closeCorner.CornerRadius = UDim.new(0, 6)
 
 -- Buton ve slider helper
-local contentY = 46
-local function makeButton(text, y)
+local contentY = 50
+
+local function makeSection(title, y)
+    local sectionLabel = Instance.new("TextLabel", panel)
+    sectionLabel.Size = UDim2.new(0, 400, 0, 25)
+    sectionLabel.Position = UDim2.new(0.5, -200, 0, y)
+    sectionLabel.BackgroundTransparency = 1
+    sectionLabel.Text = title
+    sectionLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    sectionLabel.Font = Enum.Font.GothamBold
+    sectionLabel.TextSize = 16
+    sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
+    return y + 30
+end
+
+local function makeButton(text, y, width)
     local btn = Instance.new("TextButton", panel)
-    btn.Size = UDim2.new(0, 360, 0, 40)
-    btn.Position = UDim2.new(0.5, -180, 0, y)
+    btn.Size = UDim2.new(0, width or 400, 0, 45)
+    btn.Position = UDim2.new(0.5, -200, 0, y)
     btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
     btn.Text = text
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 16
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 15)
-    return btn
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12)
+    return btn, y + 55
 end
 
 local function makeSlider(text, y, currentVal, minVal, maxVal, color)
-    local lbl = Instance.new("TextLabel", panel)
-    lbl.Size = UDim2.new(0, 360, 0, 20)
-    lbl.Position = UDim2.new(0.5, -180, 0, y)
+    local sliderFrame = Instance.new("Frame", panel)
+    sliderFrame.Size = UDim2.new(0, 400, 0, 60)
+    sliderFrame.Position = UDim2.new(0.5, -200, 0, y)
+    sliderFrame.BackgroundTransparency = 1
+    
+    local lbl = Instance.new("TextLabel", sliderFrame)
+    lbl.Size = UDim2.new(1, 0, 0, 25)
+    lbl.Position = UDim2.new(0, 0, 0, 0)
     lbl.BackgroundTransparency = 1
-    lbl.Text = text .. " " .. currentVal
+    lbl.Text = text .. " : " .. currentVal
     lbl.Font = Enum.Font.Gotham
     lbl.TextSize = 14
-    lbl.TextColor3 = color
-    y = y + 24
-    local bg = Instance.new("Frame", panel)
-    bg.Size = UDim2.new(0, 360, 0, 18)
-    bg.Position = UDim2.new(0.5, -180, 0, y)
+    lbl.TextColor3 = Color3.new(1, 1, 1)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local bg = Instance.new("Frame", sliderFrame)
+    bg.Size = UDim2.new(1, 0, 0, 20)
+    bg.Position = UDim2.new(0, 0, 0, 30)
     bg.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
     bg.BorderSizePixel = 0
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 9)
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 10)
+    
     local fill = Instance.new("Frame", bg)
     local frac = (currentVal - minVal) / (maxVal - minVal)
     fill.Size = UDim2.new(frac, 0, 1, 0)
     fill.BackgroundColor3 = color
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 9)
-    return lbl, bg, fill, minVal, maxVal
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 10)
+    
+    return lbl, bg, fill, minVal, maxVal, y + 70
 end
 
--- Butonlar
-local flyBtn = makeButton("Fly: Kapalı (F Tuşu)", contentY) 
-contentY = contentY + 52
+-- Bölümler ve Butonlar
+contentY = makeSection("TEMEL ÖZELLİKLER", contentY)
 
-local noclipBtn = makeButton("Duvardan Geçme: Kapalı", contentY) 
-contentY = contentY + 52
+local flyBtn, contentY = makeButton("Fly: Kapalı (F Tuşu)", contentY)
+local noclipBtn, contentY = makeButton("Duvardan Geçme: Kapalı", contentY)
+local invisibleBtn, contentY = makeButton("Görünmezlik: Kapalı", contentY)
 
-local invisibleBtn = makeButton("Görünmezlik: Kapalı", contentY) 
-contentY = contentY + 52
+contentY = contentY + 10
+contentY = makeSection("AYARLAR", contentY)
 
 -- Sliderlar
-local flyLabel, flySliderBG, flySliderFill, flyMin, flyMax = makeSlider("Fly Hızı:", contentY, flySpeed, 1, 200, Color3.fromRGB(120, 120, 255)) 
-contentY = contentY + 34
+local flyLabel, flySliderBG, flySliderFill, flyMin, flyMax, contentY = makeSlider("Fly Hızı", contentY, flySpeed, 1, 200, Color3.fromRGB(120, 120, 255))
+local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax, contentY = makeSlider("Yürüme Hızı", contentY, walkSpeed, 16, 100, Color3.fromRGB(120, 255, 120))
+local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax, contentY = makeSlider("Zıplama Gücü", contentY, jumpPower, 50, 200, Color3.fromRGB(255, 120, 120))
 
-local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax = makeSlider("Walk Speed:", contentY, walkSpeed, 16, 100, Color3.fromRGB(120, 255, 120)) 
-contentY = contentY + 34
-
-local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax = makeSlider("Jump Power:", contentY, jumpPower, 50, 200, Color3.fromRGB(255, 120, 120)) 
-contentY = contentY + 34
+contentY = contentY + 10
+contentY = makeSection("TUŞ AYARLARI", contentY)
 
 -- Fly tuş ayarı butonu
-local flyKeyBtn = makeButton("Fly Tuşu: F (Değiştirmek için tıkla)", contentY)
-contentY = contentY + 52
+local flyKeyBtn, contentY = makeButton("Fly Tuşu: F (Değiştirmek için tıkla)", contentY, 400)
 
 -- Panel animasyon
 local panelOpen = false
 local openTweenInfo = TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local closeTweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-local openGoal = {Position = UDim2.new(0.5, -200, 0.1, 0)}
-local closeGoal = {Position = UDim2.new(0.5, -200, -1, 0)}
+local openGoal = {Position = UDim2.new(0.5, -225, 0.05, 0)}
+local closeGoal = {Position = UDim2.new(0.5, -225, -1, 0)}
 
 local function togglePanel()
     if not panelOpen then
@@ -329,8 +348,9 @@ flyKeyBtn.MouseButton1Click:Connect(function()
             
             if input.UserInputType == Enum.UserInputType.Keyboard then
                 flyKey = input.KeyCode
-                flyKeyBtn.Text = "Fly Tuşu: " .. tostring(flyKey):gsub("Enum.KeyCode.", "") .. " (Değiştirmek için tıkla)"
-                flyBtn.Text = "Fly: Kapalı (" .. tostring(flyKey):gsub("Enum.KeyCode.", "") .. " Tuşu)"
+                local keyName = tostring(flyKey):gsub("Enum.KeyCode.", "")
+                flyKeyBtn.Text = "Fly Tuşu: " .. keyName .. " (Değiştirmek için tıkla)"
+                flyBtn.Text = "Fly: Kapalı (" .. keyName .. " Tuşu)"
                 waitingForFlyKey = false
                 connection:Disconnect()
             end
@@ -465,7 +485,7 @@ UserInputService.InputChanged:Connect(function(input)
         local frac = x / flySliderBG.AbsoluteSize.X
         flySpeed = math.floor(flyMin + frac * (flyMax - flyMin))
         flySliderFill.Size = UDim2.new(frac, 0, 1, 0)
-        flyLabel.Text = "Fly Hızı: " .. flySpeed
+        flyLabel.Text = "Fly Hızı : " .. flySpeed
     end
 end)
 
@@ -488,7 +508,7 @@ UserInputService.InputChanged:Connect(function(input)
         local frac = x / walkSliderBG.AbsoluteSize.X
         walkSpeed = math.floor(walkMin + frac * (walkMax - walkMin))
         walkSliderFill.Size = UDim2.new(frac, 0, 1, 0)
-        walkLabel.Text = "Walk Speed: " .. walkSpeed
+        walkLabel.Text = "Yürüme Hızı : " .. walkSpeed
         updateWalkSpeed()
     end
 end)
@@ -512,7 +532,7 @@ UserInputService.InputChanged:Connect(function(input)
         local frac = x / jumpSliderBG.AbsoluteSize.X
         jumpPower = math.floor(jumpMin + frac * (jumpMax - jumpMin))
         jumpSliderFill.Size = UDim2.new(frac, 0, 1, 0)
-        jumpLabel.Text = "Jump Power: " .. jumpPower
+        jumpLabel.Text = "Zıplama Gücü : " .. jumpPower
         updateJumpPower()
     end
 end)
@@ -532,8 +552,8 @@ player.CharacterAdded:Connect(function(character)
     getOriginalValues()
     
     -- UI'ı güncelle
-    walkLabel.Text = "Walk Speed: " .. walkSpeed
-    jumpLabel.Text = "Jump Power: " .. jumpPower
+    walkLabel.Text = "Yürüme Hızı : " .. walkSpeed
+    jumpLabel.Text = "Zıplama Gücü : " .. jumpPower
     
     local walkFrac = (walkSpeed - walkMin) / (walkMax - walkMin)
     local jumpFrac = (jumpPower - jumpMin) / (jumpMax - jumpMin)
