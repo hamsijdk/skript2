@@ -1,4 +1,4 @@
--- Frox Hack GUI | Premium Frox Edition
+-- Frox Hack GUI | Özel Tasarım
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -14,151 +14,122 @@ local control = {F = 0, B = 0, L = 0, R = 0, U = 0, D = 0}
 local bodyGyro, bodyVelocity
 local flyKey = Enum.KeyCode.F
 
--- Premium GUI
+-- GUI oluştur
 local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FroxHack"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Parent = player.PlayerGui
 
--- Frox Logo Butonu
+-- ANA BUTON (Turuncu-Kırmızı tema)
 local mainButton = Instance.new("TextButton")
-mainButton.Size = UDim2.new(0, 140, 0, 60)
-mainButton.Position = UDim2.new(0, 50, 0, 150)
+mainButton.Name = "MainBtn"
+mainButton.Size = UDim2.new(0, 120, 0, 45)
+mainButton.Position = UDim2.new(0, 20, 0, 20)
+mainButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+mainButton.TextColor3 = Color3.new(1, 1, 1)
 mainButton.Text = "🦊 FROX"
 mainButton.Font = Enum.Font.GothamBlack
-mainButton.TextSize = 18
-mainButton.TextColor3 = Color3.new(1, 1, 1)
-mainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mainButton.TextSize = 16
 mainButton.BorderSizePixel = 0
-mainButton.AutoButtonColor = true
-mainButton.Active = true
+mainButton.ZIndex = 10
 mainButton.Parent = screenGui
 
--- Frox gradient efekti
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 100)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 150, 50))
-})
-gradient.Rotation = 45
-gradient.Parent = mainButton
+-- Buton stil
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 10)
+btnCorner.Parent = mainButton
 
-local mbCorner = Instance.new("UICorner", mainButton)
-mbCorner.CornerRadius = UDim.new(0, 15)
-local mbStroke = Instance.new("UIStroke", mainButton)
-mbStroke.Color = Color3.fromRGB(255, 100, 100)
-mbStroke.Thickness = 3
-mbStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local btnStroke = Instance.new("UIStroke")
+btnStroke.Color = Color3.fromRGB(255, 120, 120)
+btnStroke.Thickness = 2
+btnStroke.Parent = mainButton
 
 mainButton.Draggable = true
 
--- Premium Panel
+-- PANEL (Koyu tema turuncu aksan)
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 480, 0, 550)
-panel.Position = UDim2.new(0.5, -240, -1, 0)
-panel.AnchorPoint = Vector2.new(0.5, 0)
-panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+panel.Name = "MainPanel"
+panel.Size = UDim2.new(0, 350, 0, 500)
+panel.Position = UDim2.new(0.5, -175, 0.5, -250)
+panel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 panel.BorderSizePixel = 0
+panel.Visible = false
+panel.ZIndex = 5
 panel.Parent = screenGui
-panel.ClipsDescendants = true
 
--- Panel gradient
-local panelGradient = Instance.new("UIGradient")
-panelGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 25)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 15))
-})
-panelGradient.Parent = panel
+local panelCorner = Instance.new("UICorner")
+panelCorner.CornerRadius = UDim.new(0, 15)
+panelCorner.Parent = panel
 
-local panelCorner = Instance.new("UICorner", panel)
-panelCorner.CornerRadius = UDim.new(0, 20)
-local panelStroke = Instance.new("UIStroke", panel)
-panelStroke.Color = Color3.fromRGB(255, 80, 80)
+local panelStroke = Instance.new("UIStroke")
+panelStroke.Color = Color3.fromRGB(255, 100, 100)
 panelStroke.Thickness = 2
+panelStroke.Parent = panel
 
--- Scroll frame
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -30, 1, -120)
-scrollFrame.Position = UDim2.new(0, 15, 0, 100)
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.BorderSizePixel = 0
-scrollFrame.ScrollBarThickness = 6
-scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 100, 100)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 800)
-scrollFrame.Parent = panel
+-- BAŞLIK (Turuncu gradient)
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 50)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+titleBar.BorderSizePixel = 0
+titleBar.ZIndex = 6
+titleBar.Parent = panel
 
--- Frox Header
-local headerFrame = Instance.new("Frame")
-headerFrame.Size = UDim2.new(1, 0, 0, 80)
-headerFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-headerFrame.BorderSizePixel = 0
-headerFrame.Parent = panel
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 15)
+titleCorner.Parent = titleBar
 
-local headerCorner = Instance.new("UICorner", headerFrame)
-headerCorner.CornerRadius = UDim.new(0, 20)
-
-local headerGradient = Instance.new("UIGradient")
-headerGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 80)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 120, 50))
-})
-headerGradient.Rotation = 90
-headerGradient.Parent = headerFrame
-
--- Frox Logo
-local froxLogo = Instance.new("TextLabel")
-foxLogo.Size = UDim2.new(0, 50, 0, 50)
-foxLogo.Position = UDim2.new(0, 20, 0, 15)
-foxLogo.BackgroundTransparency = 1
-foxLogo.Text = "🦊"
-foxLogo.TextSize = 35
-foxLogo.TextColor3 = Color3.new(1, 1, 1)
-foxLogo.Parent = headerFrame
-
--- Başlık
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -80, 0, 30)
-titleLabel.Position = UDim2.new(0, 80, 0, 15)
+titleLabel.Size = UDim2.new(1, -50, 1, 0)
+titleLabel.Position = UDim2.new(0, 15, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "FROX HACK PREMIUM"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamBlack
-titleLabel.TextSize = 18
+titleLabel.TextSize = 16
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = headerFrame
-
--- Alt başlık
-local subtitleLabel = Instance.new("TextLabel")
-subtitleLabel.Size = UDim2.new(1, -80, 0, 20)
-subtitleLabel.Position = UDim2.new(0, 80, 0, 40)
-subtitleLabel.BackgroundTransparency = 1
-subtitleLabel.Text = "by efeakincipo • v2.0"
-subtitleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-subtitleLabel.Font = Enum.Font.Gotham
-subtitleLabel.TextSize = 12
-subtitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-subtitleLabel.Parent = headerFrame
+titleLabel.ZIndex = 7
+titleLabel.Parent = titleBar
 
 -- Kapat butonu
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -40, 0, 20)
-closeBtn.Text = "✕"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 16
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Position = UDim2.new(1, -35, 0, 10)
 closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 14
 closeBtn.BorderSizePixel = 0
-closeBtn.Parent = headerFrame
+closeBtn.ZIndex = 7
+closeBtn.Parent = titleBar
 
-local closeCorner = Instance.new("UICorner", closeBtn)
-closeCorner.CornerRadius = UDim.new(0, 8)
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.Parent = closeBtn
 
--- UI Helper Fonksiyonları
+-- İçerik alanı
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, -20, 1, -70)
+contentFrame.Position = UDim2.new(0, 10, 0, 60)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = panel
+
+-- Scroll frame
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, 0, 1, 0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 100, 100)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 800)
+scrollFrame.Parent = contentFrame
+
+-- UI Helper fonksiyonları
 local contentY = 0
 
-local function makeSection(title, y)
+local function createSection(title, y)
     local section = Instance.new("Frame")
-    section.Size = UDim2.new(1, 0, 0, 40)
+    section.Size = UDim2.new(1, 0, 0, 35)
     section.Position = UDim2.new(0, 0, 0, y)
     section.BackgroundTransparency = 1
     section.Parent = scrollFrame
@@ -169,61 +140,65 @@ local function makeSection(title, y)
     label.Text = "✦ " .. title
     label.TextColor3 = Color3.fromRGB(255, 100, 100)
     label.Font = Enum.Font.GothamBold
-    label.TextSize = 16
+    label.TextSize = 14
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = section
     
-    return y + 45
+    return y + 40
 end
 
-local function makeButton(text, y, icon, color)
+local function createButton(text, y, icon, color)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 45)
+    btn.Size = UDim2.new(1, 0, 0, 40)
     btn.Position = UDim2.new(0, 0, 0, y)
-    btn.BackgroundColor3 = color or Color3.fromRGB(35, 35, 35)
+    btn.BackgroundColor3 = color or Color3.fromRGB(40, 40, 40)
     btn.Text = icon .. " " .. text
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 14
     btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
     btn.BorderSizePixel = 0
     btn.Parent = scrollFrame
     
-    local btnCorner = Instance.new("UICorner", btn)
-    btnCorner.CornerRadius = UDim.new(0, 12)
-    local btnStroke = Instance.new("UIStroke", btn)
-    btnStroke.Color = Color3.fromRGB(60, 60, 60)
-    btnStroke.Thickness = 1
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
     
-    return btn, y + 55
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(60, 60, 60)
+    stroke.Thickness = 1
+    stroke.Parent = btn
+    
+    return btn, y + 50
 end
 
-local function makeSlider(text, y, currentVal, minVal, maxVal, color)
+local function createSlider(text, y, currentVal, minVal, maxVal, color)
     local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, 0, 0, 70)
+    sliderFrame.Size = UDim2.new(1, 0, 0, 60)
     sliderFrame.Position = UDim2.new(0, 0, 0, y)
     sliderFrame.BackgroundTransparency = 1
     sliderFrame.Parent = scrollFrame
     
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 25)
-    lbl.Position = UDim2.new(0, 0, 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = "📊 " .. text .. " : " .. currentVal
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 14
-    lbl.TextColor3 = Color3.new(1, 1, 1)
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = sliderFrame
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 25)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text .. " : " .. currentVal
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = sliderFrame
     
     local bg = Instance.new("Frame")
-    bg.Size = UDim2.new(1, 0, 0, 20)
+    bg.Size = UDim2.new(1, 0, 0, 18)
     bg.Position = UDim2.new(0, 0, 0, 30)
     bg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     bg.BorderSizePixel = 0
     bg.Parent = sliderFrame
     
-    local bgCorner = Instance.new("UICorner", bg)
-    bgCorner.CornerRadius = UDim.new(0, 10)
+    local bgCorner = Instance.new("UICorner")
+    bgCorner.CornerRadius = UDim.new(0, 9)
+    bgCorner.Parent = bg
     
     local fill = Instance.new("Frame")
     local frac = (currentVal - minVal) / (maxVal - minVal)
@@ -232,106 +207,55 @@ local function makeSlider(text, y, currentVal, minVal, maxVal, color)
     fill.BorderSizePixel = 0
     fill.Parent = bg
     
-    local fillCorner = Instance.new("UICorner", fill)
-    fillCorner.CornerRadius = UDim.new(0, 10)
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(0, 9)
+    fillCorner.Parent = fill
     
-    return lbl, bg, fill, minVal, maxVal, y + 80
+    return label, bg, fill, minVal, maxVal, y + 70
 end
 
--- GUI Oluşturma
-contentY = makeSection("UÇUŞ SİSTEMİ", contentY)
+-- GUI İÇERİĞİ (Turuncu-Kırmızı renk teması)
+contentY = createSection("UÇUŞ SİSTEMİ", contentY)
 
-local flyBtn, contentY = makeButton("Fly: Kapalı (F Tuşu)", contentY, "🛸", Color3.fromRGB(60, 60, 180))
-local antiGravityBtn, contentY = makeButton("Anti-Gravity: Kapalı", contentY, "🪂", Color3.fromRGB(180, 60, 180))
-
-contentY = contentY + 10
-contentY = makeSection("HAREKET SİSTEMİ", contentY)
-
-local speedBoostBtn, contentY = makeButton("Hız Artışı: Kapalı", contentY, "⚡", Color3.fromRGB(255, 140, 0))
-local superJumpBtn, contentY = makeButton("Süper Zıplama: Kapalı", contentY, "🦘", Color3.fromRGB(255, 80, 80))
-local infJumpBtn, contentY = makeButton("Sonsuz Zıplama: Kapalı", contentY, "∞", Color3.fromRGB(80, 255, 80))
-local noClipBtn, contentY = makeButton("NoClip: Kapalı", contentY, "🚷", Color3.fromRGB(180, 60, 60))
+local flyBtn, contentY = createButton("Fly: Kapalı (F Tuşu)", contentY, "🛸", Color3.fromRGB(60, 60, 180))
+local antiGravityBtn, contentY = createButton("Anti-Gravity: Kapalı", contentY, "🪂", Color3.fromRGB(180, 60, 180))
 
 contentY = contentY + 10
-contentY = makeSection("AYARLAR", contentY)
+contentY = createSection("HAREKET SİSTEMİ", contentY)
 
-local flyLabel, flySliderBG, flySliderFill, flyMin, flyMax, contentY = makeSlider("Fly Hızı", contentY, flySpeed, 1, 200, Color3.fromRGB(100, 100, 255))
-local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax, contentY = makeSlider("Yürüme Hızı", contentY, walkSpeed, 16, 100, Color3.fromRGB(100, 255, 100))
-local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax, contentY = makeSlider("Zıplama Gücü", contentY, jumpPower, 50, 200, Color3.fromRGB(255, 100, 100))
+local speedBoostBtn, contentY = createButton("Hız Artışı: Kapalı", contentY, "⚡", Color3.fromRGB(255, 140, 0))
+local superJumpBtn, contentY = createButton("Süper Zıplama: Kapalı", contentY, "🦘", Color3.fromRGB(255, 80, 80))
+local infJumpBtn, contentY = createButton("Sonsuz Zıplama: Kapalı", contentY, "∞", Color3.fromRGB(80, 255, 80))
+local noClipBtn, contentY = createButton("NoClip: Kapalı", contentY, "🚷", Color3.fromRGB(180, 60, 60))
 
 contentY = contentY + 10
-contentY = makeSection("SİSTEM", contentY)
+contentY = createSection("AYARLAR", contentY)
 
-local flyKeyBtn, contentY = makeButton("Fly Tuşu: F (Değiştir)", contentY, "⌨️", Color3.fromRGB(180, 180, 60))
-local antiAFKBtn, contentY = makeButton("Anti-AFK: Kapalı", contentY, "⏰", Color3.fromRGB(60, 180, 180))
+local flyLabel, flySliderBG, flySliderFill, flyMin, flyMax, contentY = createSlider("Fly Hızı", contentY, flySpeed, 1, 200, Color3.fromRGB(100, 100, 255))
+local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax, contentY = createSlider("Yürüme Hızı", contentY, walkSpeed, 16, 100, Color3.fromRGB(100, 255, 100))
+local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax, contentY = createSlider("Zıplama Gücü", contentY, jumpPower, 50, 200, Color3.fromRGB(255, 100, 100))
+
+contentY = contentY + 10
+contentY = createSection("SİSTEM", contentY)
+
+local flyKeyBtn, contentY = createButton("Fly Tuşu: F (Değiştir)", contentY, "⌨️", Color3.fromRGB(180, 180, 60))
+local antiAFKBtn, contentY = createButton("Anti-AFK: Kapalı", contentY, "⏰", Color3.fromRGB(60, 180, 180))
 
 -- Canvas size güncelle
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentY + 20)
 
--- Panel Animasyonları
+-- PANEL KONTROL
 local panelOpen = false
-local openTweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local closeTweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-local openGoal = {Position = UDim2.new(0.5, -240, 0.08, 0)}
-local closeGoal = {Position = UDim2.new(0.5, -240, -1, 0)}
 
 local function togglePanel()
-    if not panelOpen then
-        TweenService:Create(panel, openTweenInfo, openGoal):Play()
-        panelOpen = true
-    else
-        TweenService:Create(panel, closeTweenInfo, closeGoal):Play()
-        panelOpen = false
-    end
+    panel.Visible = not panel.Visible
+    panelOpen = panel.Visible
 end
 
 mainButton.MouseButton1Click:Connect(togglePanel)
 closeBtn.MouseButton1Click:Connect(togglePanel)
 
 -- HİLE SİSTEMLERİ --
-
--- ⚡ Hız Artışı
-local function toggleSpeedBoost()
-    speedBoost = not speedBoost
-    local character = player.Character
-    if character and character:FindFirstChild("Humanoid") then
-        if speedBoost then
-            character.Humanoid.WalkSpeed = walkSpeed * 2
-            speedBoostBtn.Text = "⚡ Hız Artışı: Açık"
-        else
-            character.Humanoid.WalkSpeed = walkSpeed
-            speedBoostBtn.Text = "⚡ Hız Artışı: Kapalı"
-        end
-    end
-end
-
--- 🦘 Süper Zıplama
-local function toggleSuperJump()
-    superJump = not superJump
-    local character = player.Character
-    if character and character:FindFirstChild("Humanoid") then
-        if superJump then
-            character.Humanoid.JumpPower = jumpPower * 1.5
-            superJumpBtn.Text = "🦘 Süper Zıplama: Açık"
-        else
-            character.Humanoid.JumpPower = jumpPower
-            superJumpBtn.Text = "🦘 Süper Zıplama: Kapalı"
-        end
-    end
-end
-
--- ∞ Sonsuz Zıplama
-local function toggleInfJump()
-    infJump = not infJump
-    infJumpBtn.Text = infJump and "∞ Sonsuz Zıplama: Açık" or "∞ Sonsuz Zıplama: Kapalı"
-end
-
--- 🪂 Anti-Gravity
-local function toggleAntiGravity()
-    antiGravity = not antiGravity
-    antiGravityBtn.Text = antiGravity and "🪂 Anti-Gravity: Açık" or "🪂 Anti-Gravity: Kapalı"
-end
-
 -- Fly Sistemi
 local function startFly()
     if flying then return end
@@ -361,7 +285,6 @@ local function startFly()
     bodyVelocity.Parent = rootPart
     
     character.Humanoid.PlatformStand = true
-    
     flyBtn.Text = "🛸 Fly: Açık (F Tuşu)"
     
     local flyLoop
@@ -401,7 +324,49 @@ local function stopFly()
     flyBtn.Text = "🛸 Fly: Kapalı (F Tuşu)"
 end
 
--- Anti-AFK Sistemi
+-- Hız Artışı
+local function toggleSpeedBoost()
+    speedBoost = not speedBoost
+    local character = player.Character
+    if character and character:FindFirstChild("Humanoid") then
+        if speedBoost then
+            character.Humanoid.WalkSpeed = walkSpeed * 2
+            speedBoostBtn.Text = "⚡ Hız Artışı: Açık"
+        else
+            character.Humanoid.WalkSpeed = walkSpeed
+            speedBoostBtn.Text = "⚡ Hız Artışı: Kapalı"
+        end
+    end
+end
+
+-- Süper Zıplama
+local function toggleSuperJump()
+    superJump = not superJump
+    local character = player.Character
+    if character and character:FindFirstChild("Humanoid") then
+        if superJump then
+            character.Humanoid.JumpPower = jumpPower * 2
+            superJumpBtn.Text = "🦘 Süper Zıplama: Açık"
+        else
+            character.Humanoid.JumpPower = jumpPower
+            superJumpBtn.Text = "🦘 Süper Zıplama: Kapalı"
+        end
+    end
+end
+
+-- Sonsuz Zıplama
+local function toggleInfJump()
+    infJump = not infJump
+    infJumpBtn.Text = infJump and "∞ Sonsuz Zıplama: Açık" or "∞ Sonsuz Zıplama: Kapalı"
+end
+
+-- Anti-Gravity
+local function toggleAntiGravity()
+    antiGravity = not antiGravity
+    antiGravityBtn.Text = antiGravity and "🪂 Anti-Gravity: Açık" or "🪂 Anti-Gravity: Kapalı"
+end
+
+-- Anti-AFK
 local antiAFK = false
 local function toggleAntiAFK()
     antiAFK = not antiAFK
@@ -418,7 +383,7 @@ local function toggleAntiAFK()
     end
 end
 
--- Kontrol Sistemi
+-- KONTROLLER
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
@@ -454,7 +419,7 @@ UserInputService.InputEnded:Connect(function(input)
     elseif key == Enum.KeyCode.LeftShift then control.D = 0 end
 end)
 
--- Buton Event'leri
+-- BUTON EVENT'LERİ
 flyBtn.MouseButton1Click:Connect(function()
     if flying then stopFly() else startFly() end
 end)
@@ -470,7 +435,7 @@ infJumpBtn.MouseButton1Click:Connect(toggleInfJump)
 antiGravityBtn.MouseButton1Click:Connect(toggleAntiGravity)
 antiAFKBtn.MouseButton1Click:Connect(toggleAntiAFK)
 
--- Fly Tuş Değiştirme
+-- Fly tuş değiştirme
 local waitingForKey = false
 flyKeyBtn.MouseButton1Click:Connect(function()
     if not waitingForKey then
@@ -491,7 +456,7 @@ flyKeyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Slider Sistemi
+-- SLIDER SİSTEMİ
 local function setupSlider(sliderBG, sliderFill, label, minVal, maxVal, onChange)
     local dragging = false
     
@@ -523,7 +488,7 @@ local function setupSlider(sliderBG, sliderFill, label, minVal, maxVal, onChange
     end)
 end
 
--- Slider Kurulumu
+-- Slider kurulum
 setupSlider(flySliderBG, flySliderFill, flyLabel, flyMin, flyMax, function(val) flySpeed = val end)
 setupSlider(walkSliderBG, walkSliderFill, walkLabel, walkMin, walkMax, function(val) 
     walkSpeed = val 
@@ -538,7 +503,7 @@ setupSlider(jumpSliderBG, jumpSliderFill, jumpLabel, jumpMin, jumpMax, function(
     end
 end)
 
--- Noclip Sistemi
+-- NOCLIP SİSTEMİ
 RunService.Stepped:Connect(function()
     if noclip and player.Character then
         for _, part in pairs(player.Character:GetDescendants()) do
@@ -549,7 +514,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Anti-Gravity Sistemi
+-- ANTI-GRAVITY SİSTEMİ
 RunService.Heartbeat:Connect(function()
     if antiGravity and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         player.Character.HumanoidRootPart.Velocity = Vector3.new(
@@ -560,7 +525,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Karakter Takip Sistemi
+-- KARAKTER TAKİP
 player.CharacterAdded:Connect(function(character)
     character:WaitForChild("Humanoid")
     wait(0.5)
@@ -577,7 +542,7 @@ player.CharacterAdded:Connect(function(character)
     end
 end)
 
--- Başlangıç Ayarları
+-- BAŞLANGIÇ
 if player.Character then
     local humanoid = player.Character:FindFirstChild("Humanoid")
     if humanoid then
@@ -586,4 +551,4 @@ if player.Character then
     end
 end
 
-print("🎉 Frox Hack Premium yüklendi! 🦊")
+print("🦊 Frox Hack yüklendi! Butona tıkla.")
