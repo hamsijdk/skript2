@@ -1,4 +1,4 @@
--- Frox Hack GUI | Gelişmiş Sürüm
+-- Frox Hack GUI | Ultimate Sürüm
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -6,7 +6,7 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
 -- Gelişmiş ayarlar
-local flying, noclip, invisible = false, false, false
+local flying, noclip, speedBoost, superJump, infJump, noClip, antiGravity = false, false, false, false, false, false, false
 local flySpeed = 50
 local walkSpeed = 16
 local jumpPower = 50
@@ -21,7 +21,7 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 
 -- Ana buton - Gelişmiş
 local mainButton = Instance.new("TextButton")
-mainButton.Size = UDim2.new(0, 120, 0, 50)
+mainButton.Size = UDim2.new(0, 130, 0, 55)
 mainButton.Position = UDim2.new(0, 50, 0, 150)
 mainButton.Text = "🚀 Frox Hack"
 mainButton.Font = Enum.Font.GothamBold
@@ -43,8 +43,8 @@ mainButton.Draggable = true
 
 -- Gelişmiş panel
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 480, 0, 550)
-panel.Position = UDim2.new(0.5, -240, -1, 0)
+panel.Size = UDim2.new(0, 500, 0, 600)
+panel.Position = UDim2.new(0.5, -250, -1, 0)
 panel.AnchorPoint = Vector2.new(0.5, 0)
 panel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 panel.BorderSizePixel = 0
@@ -56,6 +56,17 @@ panelCorner.CornerRadius = UDim.new(0, 15)
 local panelStroke = Instance.new("UIStroke", panel)
 panelStroke.Color = Color3.fromRGB(60, 60, 60)
 panelStroke.Thickness = 2
+
+-- Scroll frame ekleyelim
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -30, 1, -60)
+scrollFrame.Position = UDim2.new(0, 15, 0, 55)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 8
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1200) -- Kaydırma alanı
+scrollFrame.Parent = panel
 
 -- Başlık bar - Gelişmiş
 local titleBar = Instance.new("Frame")
@@ -71,7 +82,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -80, 1, 0)
 titleLabel.Position = UDim2.new(0, 15, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "🌟 Frox Hack Premium • efeakincipo"
+titleLabel.Text = "🌟 Frox Hack Ultimate • efeakincipo"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamSemibold
 titleLabel.TextSize = 16
@@ -93,13 +104,6 @@ closeBtn.Parent = titleBar
 local closeCorner = Instance.new("UICorner", closeBtn)
 closeCorner.CornerRadius = UDim.new(0, 8)
 
--- İçerik alanı
-local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, -30, 1, -60)
-contentFrame.Position = UDim2.new(0, 15, 0, 55)
-contentFrame.BackgroundTransparency = 1
-contentFrame.Parent = panel
-
 -- Gelişmiş UI helper fonksiyonları
 local contentY = 0
 
@@ -108,7 +112,7 @@ local function makeSection(title, y)
     section.Size = UDim2.new(1, 0, 0, 35)
     section.Position = UDim2.new(0, 0, 0, y)
     section.BackgroundTransparency = 1
-    section.Parent = contentFrame
+    section.Parent = scrollFrame
     
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 1, 0)
@@ -133,7 +137,7 @@ local function makeButton(text, y, color)
     btn.TextSize = 14
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.BorderSizePixel = 0
-    btn.Parent = contentFrame
+    btn.Parent = scrollFrame
     
     local btnCorner = Instance.new("UICorner", btn)
     btnCorner.CornerRadius = UDim.new(0, 10)
@@ -149,7 +153,7 @@ local function makeSlider(text, y, currentVal, minVal, maxVal, color)
     sliderFrame.Size = UDim2.new(1, 0, 0, 65)
     sliderFrame.Position = UDim2.new(0, 0, 0, y)
     sliderFrame.BackgroundTransparency = 1
-    sliderFrame.Parent = contentFrame
+    sliderFrame.Parent = scrollFrame
     
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, 0, 0, 25)
@@ -186,31 +190,42 @@ local function makeSlider(text, y, currentVal, minVal, maxVal, color)
 end
 
 -- GUI oluşturma
-contentY = makeSection("TEMEL ÖZELLİKLER", contentY)
+contentY = makeSection("UÇUŞ ÖZELLİKLERİ", contentY)
 
 local flyBtn, contentY = makeButton("🛸 Fly: Kapalı (F Tuşu)", contentY, Color3.fromRGB(70, 70, 180))
-local noclipBtn, contentY = makeButton("🚷 Duvardan Geçme: Kapalı", contentY, Color3.fromRGB(180, 70, 70))
-local invisibleBtn, contentY = makeButton("👻 Görünmezlik: Kapalı", contentY, Color3.fromRGB(70, 180, 70))
+local antiGravityBtn, contentY = makeButton("🪂 Anti-Gravity: Kapalı", contentY, Color3.fromRGB(180, 100, 200))
 
 contentY = contentY + 10
-contentY = makeSection("HAREKET AYARLARI", contentY)
+contentY = makeSection("HAREKET ÖZELLİKLERİ", contentY)
+
+local speedBoostBtn, contentY = makeButton("⚡ Hız Artışı: Kapalı", contentY, Color3.fromRGB(255, 165, 0))
+local superJumpBtn, contentY = makeButton("🦘 Süper Zıplama: Kapalı", contentY, Color3.fromRGB(255, 100, 100))
+local infJumpBtn, contentY = makeButton("∞ Sonsuz Zıplama: Kapalı", contentY, Color3.fromRGB(100, 255, 100))
+local noClipBtn, contentY = makeButton("🚷 NoClip: Kapalı", contentY, Color3.fromRGB(180, 70, 70))
+
+contentY = contentY + 10
+contentY = makeSection("AYARLAR", contentY)
 
 local flyLabel, flySliderBG, flySliderFill, flyMin, flyMax, contentY = makeSlider("Fly Hızı", contentY, flySpeed, 1, 200, Color3.fromRGB(100, 100, 255))
-local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax, contentY = makeSlider("Yürüme Hızı", contentY, walkSpeed, 16, 100, Color3.fromRGB(100, 255, 100))
-local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax, contentY = makeSlider("Zıplama Gücü", contentY, jumpPower, 50, 200, Color3.fromRGB(255, 100, 100))
+local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax, contentY = makeSlider("Yürüme Hızı", contentY, walkSpeed, 16, 150, Color3.fromRGB(100, 255, 100))
+local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax, contentY = makeSlider("Zıplama Gücü", contentY, jumpPower, 50, 300, Color3.fromRGB(255, 100, 100))
 
 contentY = contentY + 10
 contentY = makeSection("GELİŞMİŞ AYARLAR", contentY)
 
 local flyKeyBtn, contentY = makeButton("⌨️ Fly Tuşu: F (Değiştir)", contentY, Color3.fromRGB(180, 180, 70))
 local antiAFKBtn, contentY = makeButton("⏰ Anti-AFK: Kapalı", contentY, Color3.fromRGB(70, 180, 180))
+local espBtn, contentY = makeButton("🎯 ESP: Kapalı", contentY, Color3.fromRGB(255, 50, 50))
+
+-- Canvas size'ı güncelle
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentY + 20)
 
 -- Panel animasyonları
 local panelOpen = false
 local openTweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local closeTweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-local openGoal = {Position = UDim2.new(0.5, -240, 0.1, 0)}
-local closeGoal = {Position = UDim2.new(0.5, -240, -1, 0)}
+local openGoal = {Position = UDim2.new(0.5, -250, 0.05, 0)}
+local closeGoal = {Position = UDim2.new(0.5, -250, -1, 0)}
 
 local function togglePanel()
     if not panelOpen then
@@ -225,7 +240,71 @@ end
 mainButton.MouseButton1Click:Connect(togglePanel)
 closeBtn.MouseButton1Click:Connect(togglePanel)
 
--- Gelişmiş Fly Sistemi
+-- YENİ HİLE SİSTEMLERİ --
+
+-- ⚡ Hız Artışı
+local function toggleSpeedBoost()
+    speedBoost = not speedBoost
+    if speedBoost then
+        walkSpeed = walkSpeed * 3
+        speedBoostBtn.Text = "⚡ Hız Artışı: Açık"
+    else
+        walkSpeed = walkSpeed / 3
+        speedBoostBtn.Text = "⚡ Hız Artışı: Kapalı"
+    end
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = walkSpeed
+    end
+end
+
+-- 🦘 Süper Zıplama
+local function toggleSuperJump()
+    superJump = not superJump
+    if superJump then
+        jumpPower = jumpPower * 2
+        superJumpBtn.Text = "🦘 Süper Zıplama: Açık"
+    else
+        jumpPower = jumpPower / 2
+        superJumpBtn.Text = "🦘 Süper Zıplama: Kapalı"
+    end
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = jumpPower
+    end
+end
+
+-- ∞ Sonsuz Zıplama
+local function toggleInfJump()
+    infJump = not infJump
+    infJumpBtn.Text = infJump and "∞ Sonsuz Zıplama: Açık" or "∞ Sonsuz Zıplama: Kapalı"
+end
+
+-- 🪂 Anti-Gravity
+local function toggleAntiGravity()
+    antiGravity = not antiGravity
+    antiGravityBtn.Text = antiGravity and "🪂 Anti-Gravity: Açık" or "🪂 Anti-Gravity: Kapalı"
+    
+    if antiGravity then
+        RunService.Heartbeat:Connect(function()
+            if not antiGravity then return end
+            local character = player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.Velocity = Vector3.new(
+                    character.HumanoidRootPart.Velocity.X,
+                    0,
+                    character.HumanoidRootPart.Velocity.Z
+                )
+            end
+        end)
+    end
+end
+
+-- 🎯 ESP Sistemi
+local function toggleESP()
+    -- Basit ESP sistemi
+    espBtn.Text = "🎯 ESP: Yakında Eklenecek"
+end
+
+-- Fly Sistemi (Önceki gibi)
 local function startFly()
     if flying then return end
     flying = true
@@ -238,11 +317,9 @@ local function startFly()
     
     local rootPart = character.HumanoidRootPart
     
-    -- Eski bileşenleri temizle
     if bodyGyro then bodyGyro:Destroy() end
     if bodyVelocity then bodyVelocity:Destroy() end
     
-    -- Yeni bileşenler
     bodyGyro = Instance.new("BodyGyro")
     bodyVelocity = Instance.new("BodyVelocity")
     
@@ -259,7 +336,6 @@ local function startFly()
     
     flyBtn.Text = "🛸 Fly: Açık (F Tuşu)"
     
-    -- Fly loop
     local flyLoop
     flyLoop = RunService.Heartbeat:Connect(function()
         if not flying or not character or not rootPart.Parent then
@@ -297,37 +373,7 @@ local function stopFly()
     flyBtn.Text = "🛸 Fly: Kapalı (F Tuşu)"
 end
 
--- Gelişmiş Görünmezlik
-local originalValues = {}
-local function toggleInvisibility()
-    invisible = not invisible
-    local character = player.Character
-    
-    if character then
-        if invisible then
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") or part:IsA("MeshPart") then
-                    originalValues[part] = part.Transparency
-                    part.Transparency = 1
-                elseif part:IsA("Decal") then
-                    originalValues[part] = part.Transparency
-                    part.Transparency = 1
-                end
-            end
-        else
-            for part, original in pairs(originalValues) do
-                if part and part.Parent then
-                    part.Transparency = original
-                end
-            end
-            originalValues = {}
-        end
-    end
-    
-    invisibleBtn.Text = invisible and "👻 Görünmezlik: Açık" or "👻 Görünmezlik: Kapalı"
-end
-
--- Gelişmiş Anti-AFK
+-- Anti-AFK
 local antiAFK = false
 local function toggleAntiAFK()
     antiAFK = not antiAFK
@@ -350,6 +396,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     
     if input.KeyCode == flyKey then
         if flying then stopFly() else startFly() end
+    end
+    
+    -- Sonsuz zıplama
+    if infJump and input.KeyCode == Enum.KeyCode.Space then
+        local character = player.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
     end
     
     if flying then
@@ -378,13 +432,17 @@ flyBtn.MouseButton1Click:Connect(function()
     if flying then stopFly() else startFly() end
 end)
 
-noclipBtn.MouseButton1Click:Connect(function()
+noClipBtn.MouseButton1Click:Connect(function()
     noclip = not noclip
-    noclipBtn.Text = noclip and "🚷 Duvardan Geçme: Açık" or "🚷 Duvardan Geçme: Kapalı"
+    noClipBtn.Text = noclip and "🚷 NoClip: Açık" or "🚷 NoClip: Kapalı"
 end)
 
-invisibleBtn.MouseButton1Click:Connect(toggleInvisibility)
+speedBoostBtn.MouseButton1Click:Connect(toggleSpeedBoost)
+superJumpBtn.MouseButton1Click:Connect(toggleSuperJump)
+infJumpBtn.MouseButton1Click:Connect(toggleInfJump)
+antiGravityBtn.MouseButton1Click:Connect(toggleAntiGravity)
 antiAFKBtn.MouseButton1Click:Connect(toggleAntiAFK)
+espBtn.MouseButton1Click:Connect(toggleESP)
 
 -- Fly tuş değiştirme
 local waitingForKey = false
@@ -470,22 +528,15 @@ player.CharacterAdded:Connect(function(character)
     character:WaitForChild("Humanoid")
     wait(0.5)
     
-    -- Ayarları uygula
     if character:FindFirstChild("Humanoid") then
         character.Humanoid.WalkSpeed = walkSpeed
         character.Humanoid.JumpPower = jumpPower
     end
     
-    -- Durumları koru
     if flying then
         stopFly()
         wait(0.2)
         startFly()
-    end
-    
-    if invisible then
-        wait(0.5)
-        toggleInvisibility()
     end
 end)
 
@@ -498,4 +549,4 @@ if player.Character then
     end
 end
 
-print("🎉 Frox Hack Premium yüklendi! Ana butona tıkla.")
+print("🎉 Frox Hack Ultimate yüklendi! Ana butona tıkla.")
