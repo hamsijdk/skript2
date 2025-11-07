@@ -5,13 +5,6 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
--- Ayarlar
-local flying, noclip, antiGravity, infJump = false, false, false, false
-local flySpeed = 50
-local control = {F = 0, B = 0, L = 0, R = 0, U = 0, D = 0}
-local bodyGyro, bodyVelocity
-local flyKey = Enum.KeyCode.F
-
 -- Kurt renkleri: Gri, Beyaz, Siyah
 local wolfColors = {
     primary = Color3.fromRGB(80, 80, 80),    -- Ana gri
@@ -19,6 +12,13 @@ local wolfColors = {
     accent = Color3.fromRGB(200, 200, 200),   -- Beyaz
     dark = Color3.fromRGB(30, 30, 30)        -- Koyu gri
 }
+
+-- Ayarlar
+local flying, noclip, antiGravity, infJump = false, false, false, false
+local flySpeed = 50
+local control = {F = 0, B = 0, L = 0, R = 0, U = 0, D = 0}
+local bodyGyro, bodyVelocity
+local flyKey = Enum.KeyCode.F
 
 -- GUI sistemi
 local screenGui = Instance.new("ScreenGui")
@@ -54,6 +54,7 @@ panel.Position = UDim2.new(0.5, -175, -1, 0)
 panel.AnchorPoint = Vector2.new(0.5, 0)
 panel.BackgroundColor3 = wolfColors.dark
 panel.BorderSizePixel = 0
+panel.Visible = false
 panel.Parent = screenGui
 panel.ClipsDescendants = true
 
