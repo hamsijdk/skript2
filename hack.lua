@@ -1,209 +1,80 @@
-let currentPlayers = [];
-let selectedPlayer = null;
+-- YerelScript (LocalScript) - StarterPlayer'ın içine
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local character = player.CharacterAdded:Wait()
 
-// NUI ile iletişim
-function sendData(data) {
-    fetch(`https://${GetParentResourceName()}/${data.action}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: JSON.stringify(data)
-    }).then(resp => resp.json()).then(resp => console.log(resp));
-}
+local teleportEnabled = false
 
-// Sayfa yüklendiğinde
-document.addEventListener('DOMContentLoaded', function() {
-    loadPlayers();
-    setupEventListeners();
-});
-
-// Event listener'ları kur
-function setupEventListeners() {
-    // Kapat butonu
-    document.getElementById('closeBtn').addEventListener('click', function() {
-        sendData({ action: 'closeMenu' });
-    });
+-- F tuşuna basıldığında
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
     
-    // Tab'lar
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            switchTab(this.dataset.tab);
-        });
-    });
+    if input.KeyCode == Enum.KeyCode.F then
+        teleportEnabled = not teleportEnabled
+        
+        if teleportEnabled then
+            print("Işınlanma aktif! Işınlanmak için T tuşuna basın.")
+        else
+            print("Işınlanma pasif")
+        end
+    end
     
-    // Arama
-    document.getElementById('searchInput').addEventListener('input', function() {
-        filterPlayers(this.value);
-    });
+    if input.KeyCode == Enum.KeyCode.T and teleportEnabled then
+        -- Işınlanma efekti
+        teleportCharacter()
+    end
+end)
+
+function teleportCharacter()
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
     
-    // Modal butonları
-    document.getElementById('confirmImprison').addEventListener('click', imprisonPlayer);
-    document.getElementById('cancelImprison').addEventListener('click', closeModal);
-}
-
-// Tab değiştirme
-function switchTab(tabName) {
-    // Tab butonlarını güncelle
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    local hrp = character.HumanoidRootPart
     
-    // Tab içeriklerini güncelle
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-    document.getElementById(`${tabName}-tab`).classList.add('active');
+    -- Işınlanma öncesi efektler
+    spawnParticles()
+    playSound()
     
-    if (tabName === 'players') {
-        loadPlayers();
-    } else if (tabName === 'imprisoned') {
-        loadImprisonedPlayers();
-    }
-}
-
-// Oyuncuları yükle
-function loadPlayers() {
-    sendData({ action: 'getPlayers' });
-}
-
-// Oyuncuları filtrele
-function filterPlayers(searchTerm) {
-    const filtered = currentPlayers.filter(player => 
-        player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        player.id.toString().includes(searchTerm)
-    );
-    displayPlayers(filtered);
-}
-
-// Hapsedilen oyuncuları yükle
-function loadImprisonedPlayers() {
-    const imprisoned = currentPlayers.filter(player => player.isImprisoned);
-    displayImprisonedPlayers(imprisoned);
-}
-
-// Oyuncuları göster
-function displayPlayers(players) {
-    const container = document.getElementById('playerList');
-    container.innerHTML = '';
+    -- Rastgele konuma ışınlanma
+    local randomPosition = Vector3.new(
+        math.random(-100, 100),
+        50, -- Yüksekte spawn
+        math.random(-100, 100)
+    )
     
-    players.forEach(player => {
-        const playerElement = document.createElement('div');
-        playerElement.className = 'player-item';
-        playerElement.innerHTML = `
-            <div class="player-info">
-                <div class="player-name">${escapeHtml(player.name)}</div>
-                <div class="player-id">ID: ${player.id}</div>
-            </div>
-            <div>
-                ${player.isImprisoned ? 
-                    '<button class="btn btn-jailed" disabled>⛓️ Hapiste</button>' :
-                    `<button class="btn btn-imprison" onclick="openImprisonModal(${player.id}, '${escapeHtml(player.name)}')">⛓️ Hapse At</button>`
-                }
-            </div>
-        `;
-        container.appendChild(playerElement);
-    });
-}
-
-// Hapisteki oyuncuları göster
-function displayImprisonedPlayers(players) {
-    const container = document.getElementById('imprisonedList');
-    container.innerHTML = '';
+    hrp.CFrame = CFrame.new(randomPosition)
     
-    if (players.length === 0) {
-        container.innerHTML = '<div class="player-item">❌ Hapiste kimse yok</div>';
-        return;
-    }
+    -- Işınlanma sonrası efektler
+    afterTeleportEffects()
+end
+
+function spawnParticles()
+    -- Işınlanma partikül efektleri
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(5, 5, 5)
+    part.Position = character.HumanoidRootPart.Position
+    part.Anchored = true
+    part.CanCollide = false
+    part.Parent = workspace
     
-    players.forEach(player => {
-        const playerElement = document.createElement('div');
-        playerElement.className = 'imprisoned-item';
-        playerElement.innerHTML = `
-            <div class="player-info">
-                <div class="player-name">${escapeHtml(player.name)}</div>
-                <div class="player-id">ID: ${player.id}</div>
-            </div>
-            <div>
-                <button class="btn btn-release" onclick="releasePlayer(${player.id})">🔓 Serbest Bırak</button>
-            </div>
-        `;
-        container.appendChild(playerElement);
-    });
-}
-
-// Hapis modal'ını aç
-function openImprisonModal(playerId, playerName) {
-    selectedPlayer = playerId;
-    document.getElementById('modalPlayerName').textContent = playerName;
-    document.getElementById('imprisonModal').style.display = 'block';
-    document.getElementById('durationInput').focus();
-}
-
-// Modal'ı kapat
-function closeModal() {
-    document.getElementById('imprisonModal').style.display = 'none';
-    selectedPlayer = null;
-}
-
-// Oyuncuyu hapse at
-function imprisonPlayer() {
-    const duration = document.getElementById('durationInput').value;
+    local particle = Instance.new("ParticleEmitter")
+    particle.Parent = part
     
-    if (!duration || duration < 1) {
-        alert('Lütfen geçerli bir süre girin!');
-        return;
-    }
-    
-    sendData({
-        action: 'imprisonPlayer',
-        playerId: selectedPlayer,
-        duration: parseInt(duration)
-    });
-    
-    closeModal();
-}
+    game.Debris:AddItem(part, 2)
+end
 
-// Oyuncuyu serbest bırak
-function releasePlayer(playerId) {
-    if (confirm('Bu oyuncuyu serbest bırakmak istediğinizden emin misiniz?')) {
-        sendData({
-            action: 'releasePlayer',
-            playerId: playerId
-        });
-    }
-}
+function playSound()
+    -- Işınlanma sesi
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://YOUR_SOUND_ID_HERE"
+    sound.Parent = character.HumanoidRootPart
+    sound:Play()
+    game.Debris:AddItem(sound, 3)
+end
 
-// NUI event'lerini dinle
-window.addEventListener('message', function(event) {
-    const data = event.data;
-    
-    if (data.action === 'sendPlayers') {
-        currentPlayers = data.players;
-        if (document.getElementById('players-tab').classList.contains('active')) {
-            displayPlayers(currentPlayers);
-        }
-    }
-});
-
-// HTML escape
-function escapeHtml(unsafe) {
-    return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-// ESC tuşu ile kapat
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        if (document.getElementById('imprisonModal').style.display === 'block') {
-            closeModal();
-        } else {
-            sendData({ action: 'closeMenu' });
-        }
-    }
-});
+function afterTeleportEffects()
+    -- Işınlandıktan sonraki efektler
+    character.Humanoid.WalkSpeed = 25 -- Hız artışı
+    wait(5)
+    character.Humanoid.WalkSpeed = 16 -- Normal hız
+end
