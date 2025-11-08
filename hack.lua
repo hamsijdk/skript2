@@ -1,80 +1,121 @@
--- YerelScript (LocalScript) - StarterPlayer'ın içine
+-- LocalScript (StarterPlayerScripts içine)
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
-local character = player.CharacterAdded:Wait()
 
-local teleportEnabled = false
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local hrp = character:WaitForChild("HumanoidRootPart")
 
--- F tuşuna basıldığında
+local teleportActive = false
+
+-- F tuşu ile aktif/pasif yap
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
     if input.KeyCode == Enum.KeyCode.F then
-        teleportEnabled = not teleportEnabled
+        teleportActive = not teleportActive
         
-        if teleportEnabled then
-            print("Işınlanma aktif! Işınlanmak için T tuşuna basın.")
+        if teleportActive then
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Işınlanma Aktif!",
+                Text = "Sol tıkla ile ışınlan",
+                Duration = 3
+            })
         else
-            print("Işınlanma pasif")
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Işınlanma Pasif",
+                Text = "F tuşuna basarak tekrar aç",
+                Duration = 3
+            })
         end
-    end
-    
-    if input.KeyCode == Enum.KeyCode.T and teleportEnabled then
-        -- Işınlanma efekti
-        teleportCharacter()
     end
 end)
 
-function teleportCharacter()
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+-- Mouse tıklaması ile ışınlanma
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not teleportActive then return end
     
-    local hrp = character.HumanoidRootPart
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        teleportToMouse()
+    end
+end)
+
+function teleportToMouse()
+    -- Mouse pozisyonunu al
+    local mouse = player:GetMouse()
+    local targetPosition = mouse.Hit.Position + Vector3.new(0, 5, 0) -- Yerden 5 birim yukarı
     
-    -- Işınlanma öncesi efektler
-    spawnParticles()
-    playSound()
+    -- Işınlanma öncesi efekt
+    createTeleportEffect(hrp.Position)
     
-    -- Rastgele konuma ışınlanma
-    local randomPosition = Vector3.new(
-        math.random(-100, 100),
-        50, -- Yüksekte spawn
-        math.random(-100, 100)
-    )
+    -- Karakteri ışınla
+    hrp.CFrame = CFrame.new(targetPosition)
     
-    hrp.CFrame = CFrame.new(randomPosition)
+    -- Işınlanma sonrası efekt
+    createTeleportEffect(targetPosition)
     
-    -- Işınlanma sonrası efektler
-    afterTeleportEffects()
+    -- Uçma efekti
+    flyEffect()
 end
 
-function spawnParticles()
-    -- Işınlanma partikül efektleri
+function createTeleportEffect(position)
     local part = Instance.new("Part")
-    part.Size = Vector3.new(5, 5, 5)
-    part.Position = character.HumanoidRootPart.Position
+    part.Size = Vector3.new(4, 4, 4)
+    part.Position = position
     part.Anchored = true
     part.CanCollide = false
+    part.Material = Enum.Material.Neon
+    part.BrickColor = BrickColor.new("Bright blue")
+    part.Transparency = 0.5
     part.Parent = workspace
     
-    local particle = Instance.new("ParticleEmitter")
-    particle.Parent = part
+    -- Işık efekti
+    local pointLight = Instance.new("PointLight")
+    pointLight.Brightness = 5
+    pointLight.Range = 10
+    pointLight.Color = Color3.new(0, 0.5, 1)
+    pointLight.Parent = part
     
-    game.Debris:AddItem(part, 2)
+    -- Patlama efekti
+    part:SetAttribute("Explosion", true)
+    
+    game.Debris:AddItem(part, 1)
 end
 
-function playSound()
-    -- Işınlanma sesi
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://YOUR_SOUND_ID_HERE"
-    sound.Parent = character.HumanoidRootPart
-    sound:Play()
-    game.Debris:AddItem(sound, 3)
+function flyEffect()
+    -- Yerçekimini geçici kapat
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    
+    -- Havada kalma
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, 50, 0) -- Yukarı doğru hız
+    bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
+    bodyVelocity.Parent = hrp
+    
+    -- Hız artışı
+    humanoid.WalkSpeed = 35
+    humanoid.JumpPower = 75
+    
+    -- Bir süre sonra efektleri kaldır
+    wait(3)
+    
+    bodyVelocity:Destroy()
+    humanoid.WalkSpeed = 16
+    humanoid.JumpPower = 50
+    
+    -- Yerçekimini geri aç
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
 end
 
-function afterTeleportEffects()
-    -- Işınlandıktan sonraki efektler
-    character.Humanoid.WalkSpeed = 25 -- Hız artışı
-    wait(5)
-    character.Humanoid.WalkSpeed = 16 -- Normal hız
-end
+-- Karakter değiştiğinde update et
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = newChar:WaitForChild("Humanoid")
+    hrp = newChar:WaitForChild("HumanoidRootPart")
+end)
+
+print("Işınlanma sistemi yüklendi! F tuşu ile aktif/pasif yap, sol tık ile ışınlan")
