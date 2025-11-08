@@ -30,43 +30,34 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 
 -- Ana buton - Turuncu Kurt
 local mainButton = Instance.new("TextButton")
-mainButton.Size = UDim2.new(0, 130, 0, 50)
+mainButton.Size = UDim2.new(0, 120, 0, 45)
 mainButton.Position = UDim2.new(0, 20, 0, 20)
-mainButton.Text = "🦊 FROX HACK"
+mainButton.Text = "🦊 FROX"
 mainButton.Font = Enum.Font.GothamBlack
-mainButton.TextSize = 14
-mainButton.TextColor3 = wolfColors.primary -- Turuncu yazı
+mainButton.TextSize = 16
+mainButton.TextColor3 = wolfColors.primary -- Frox yazısı turuncu
 mainButton.BackgroundColor3 = Color3.new(0, 0, 0) -- Siyah arkaplan
 mainButton.BorderSizePixel = 0
-mainButton.AutoButtonColor = false
+mainButton.AutoButtonColor = true
 mainButton.Active = true
 mainButton.Parent = screenGui
 
--- Buton gradient efekti (tam siyah)
+-- Buton gradient efekti
 local buttonGradient = Instance.new("UIGradient")
 buttonGradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.new(0, 0, 0)),
-    ColorSequenceKeypoint.new(1, Color3.new(0, 0, 0))
+    ColorSequenceKeypoint.new(1, Color3.new(0.1, 0.1, 0.1))
 })
+buttonGradient.Rotation = 45
 buttonGradient.Parent = mainButton
 
 local mbCorner = Instance.new("UICorner", mainButton)
-mbCorner.CornerRadius = UDim.new(0, 12)
+mbCorner.CornerRadius = UDim.new(0, 10)
 local mbStroke = Instance.new("UIStroke", mainButton)
 mbStroke.Color = wolfColors.primary -- Turuncu çerçeve
-mbStroke.Thickness = 3
-mbStroke.Parent = mainButton
+mbStroke.Thickness = 2
 
 mainButton.Draggable = true
-
--- Buton hover efekti
-mainButton.MouseEnter:Connect(function()
-    TweenService:Create(mbStroke, TweenInfo.new(0.2), {Thickness = 4}):Play()
-end)
-
-mainButton.MouseLeave:Connect(function()
-    TweenService:Create(mbStroke, TweenInfo.new(0.2), {Thickness = 3}):Play()
-end)
 
 -- Panel - Turuncu Kurt teması
 local panel = Instance.new("Frame")
