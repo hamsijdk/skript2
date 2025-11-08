@@ -32,11 +32,11 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 local mainButton = Instance.new("TextButton")
 mainButton.Size = UDim2.new(0, 120, 0, 45)
 mainButton.Position = UDim2.new(0, 20, 0, 20)
-mainButton.Text = "🐺 FROX"
+mainButton.Text = "🦊 FROX"
 mainButton.Font = Enum.Font.GothamBlack
 mainButton.TextSize = 16
-mainButton.TextColor3 = Color3.new(1, 1, 1)
-mainButton.BackgroundColor3 = wolfColors.primary
+mainButton.TextColor3 = wolfColors.primary -- Frox yazısı turuncu
+mainButton.BackgroundColor3 = Color3.new(0, 0, 0) -- Siyah arkaplan
 mainButton.BorderSizePixel = 0
 mainButton.AutoButtonColor = true
 mainButton.Active = true
@@ -45,8 +45,8 @@ mainButton.Parent = screenGui
 -- Buton gradient efekti
 local buttonGradient = Instance.new("UIGradient")
 buttonGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, wolfColors.primary),
-    ColorSequenceKeypoint.new(1, wolfColors.secondary)
+    ColorSequenceKeypoint.new(0, Color3.new(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.new(0.1, 0.1, 0.1))
 })
 buttonGradient.Rotation = 45
 buttonGradient.Parent = mainButton
@@ -54,7 +54,7 @@ buttonGradient.Parent = mainButton
 local mbCorner = Instance.new("UICorner", mainButton)
 mbCorner.CornerRadius = UDim.new(0, 10)
 local mbStroke = Instance.new("UIStroke", mainButton)
-mbStroke.Color = wolfColors.accent
+mbStroke.Color = wolfColors.primary -- Turuncu çerçeve
 mbStroke.Thickness = 2
 
 mainButton.Draggable = true
@@ -81,7 +81,7 @@ panelGradient.Parent = panel
 local panelCorner = Instance.new("UICorner", panel)
 panelCorner.CornerRadius = UDim.new(0, 15)
 local panelStroke = Instance.new("UIStroke", panel)
-panelStroke.Color = wolfColors.primary
+panelStroke.Color = wolfColors.primary -- Turuncu çerçeve
 panelStroke.Thickness = 2
 
 -- Başlık bar - Turuncu Kurt
@@ -107,7 +107,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -80, 1, 0)
 titleLabel.Position = UDim2.new(0, 15, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "🐺 FROX HACK"
+titleLabel.Text = "🦊 FROX HACK"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamBlack
 titleLabel.TextSize = 16
@@ -158,7 +158,7 @@ local function createSection(title, y)
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = "🐺 " .. title
+    label.Text = "🦊 " .. title
     label.TextColor3 = wolfColors.accent
     label.Font = Enum.Font.GothamBold
     label.TextSize = 14
@@ -185,7 +185,7 @@ local function createButton(text, y, icon)
     corner.Parent = btn
     
     local stroke = Instance.new("UIStroke")
-    stroke.Color = wolfColors.primary
+    stroke.Color = wolfColors.primary -- Turuncu çerçeve
     stroke.Thickness = 1
     stroke.Parent = btn
     
@@ -510,4 +510,4 @@ if player.Character then
     end
 end
 
-print("🐺 Frox Hack Turuncu Kurt yüklendi! Butona tıkla.")
+print("🦊 Frox Hack Turuncu Kurt yüklendi! Butona tıkla.")
