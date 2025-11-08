@@ -4,24 +4,36 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- GUI'yi temizle (varsa)
-if playerGui:FindFirstChild("PrisonSystem") then
-    playerGui.PrisonSystem:Destroy()
+if playerGui:FindFirstChild("TrollerMenu") then
+    playerGui.TrollerMenu:Destroy()
 end
 
--- GUI oluştur
+-- Ana GUI oluştur
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PrisonSystem"
+screenGui.Name = "TrollerMenu"
 screenGui.Parent = playerGui
 
--- Ana frame
+-- Sol tarafta Troller butonu
+local trollBtn = Instance.new("TextButton")
+trollBtn.Size = UDim2.new(0, 100, 0, 50)
+trollBtn.Position = UDim2.new(0, 10, 0.5, -25)
+trollBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+trollBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+trollBtn.Text = "🎮 TROLLER 🎮"
+trollBtn.Font = Enum.Font.GothamBold
+trollBtn.TextSize = 14
+trollBtn.BorderSizePixel = 2
+trollBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+trollBtn.Parent = screenGui
+
+-- Sağ tarafta ana menü (başlangıçta gizli)
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 400, 0, 500)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
+mainFrame.Position = UDim2.new(1, -420, 0.5, -250)
 mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 mainFrame.BorderSizePixel = 2
 mainFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
-mainFrame.Active = true
-mainFrame.Draggable = true
+mainFrame.Visible = false
 mainFrame.Parent = screenGui
 
 -- Başlık
@@ -30,62 +42,117 @@ title.Size = UDim2.new(1, 0, 0, 50)
 title.Position = UDim2.new(0, 0, 0, 0)
 title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Text = "🔒 HAREKET ENGELLEYİCİ 🔒"
+title.Text = "🎮 TROLLER MENÜSÜ 🎮"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.Parent = mainFrame
 
--- Oyuncu listesi
-local playerList = Instance.new("ScrollingFrame")
-playerList.Size = UDim2.new(1, -20, 0, 350)
-playerList.Position = UDim2.new(0, 10, 0, 60)
-playerList.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-playerList.BorderSizePixel = 0
-playerList.ScrollBarThickness = 8
-playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
-playerList.Parent = mainFrame
+-- Kapat butonu
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 10)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.Parent = mainFrame
 
--- Seçilen oyuncu
+-- Sekmeler
+local tabsFrame = Instance.new("Frame")
+tabsFrame.Size = UDim2.new(1, 0, 0, 40)
+tabsFrame.Position = UDim2.new(0, 0, 0, 50)
+tabsFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+tabsFrame.BorderSizePixel = 0
+tabsFrame.Parent = mainFrame
+
+-- Donutma sekmesi
+local freezeTab = Instance.new("TextButton")
+freezeTab.Size = UDim2.new(0.5, 0, 1, 0)
+freezeTab.Position = UDim2.new(0, 0, 0, 0)
+freezeTab.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+freezeTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+freezeTab.Text = "❄️ DONUTMA"
+freezeTab.Font = Enum.Font.GothamBold
+freezeTab.TextSize = 14
+freezeTab.Parent = tabsFrame
+
+-- Oyundan atma sekmesi
+local kickTab = Instance.new("TextButton")
+kickTab.Size = UDim2.new(0.5, 0, 1, 0)
+kickTab.Position = UDim2.new(0.5, 0, 0, 0)
+kickTab.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+kickTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+kickTab.Text = "🚪 OYUNDAN ATMA"
+kickTab.Font = Enum.Font.GothamBold
+kickTab.TextSize = 14
+kickTab.Parent = tabsFrame
+
+-- İçerik alanı
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, 0, 1, -90)
+contentFrame.Position = UDim2.new(0, 0, 0, 90)
+contentFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+contentFrame.BorderSizePixel = 0
+contentFrame.Parent = mainFrame
+
+-- Donutma içeriği
+local freezeContent = Instance.new("ScrollingFrame")
+freezeContent.Size = UDim2.new(1, 0, 1, 0)
+freezeContent.Position = UDim2.new(0, 0, 0, 0)
+freezeContent.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+freezeContent.BorderSizePixel = 0
+freezeContent.ScrollBarThickness = 8
+freezeContent.CanvasSize = UDim2.new(0, 0, 0, 0)
+freezeContent.Visible = true
+freezeContent.Parent = contentFrame
+
+-- Oyundan atma içeriği
+local kickContent = Instance.new("ScrollingFrame")
+kickContent.Size = UDim2.new(1, 0, 1, 0)
+kickContent.Position = UDim2.new(0, 0, 0, 0)
+kickContent.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+kickContent.BorderSizePixel = 0
+kickContent.ScrollBarThickness = 8
+kickContent.CanvasSize = UDim2.new(0, 0, 0, 0)
+kickContent.Visible = false
+kickContent.Parent = contentFrame
+
+-- Değişkenler
 local selectedPlayer = nil
 local imprisonedPlayers = {}
 
--- Hapset butonu
-local imprisonBtn = Instance.new("TextButton")
-imprisonBtn.Size = UDim2.new(1, -20, 0, 45)
-imprisonBtn.Position = UDim2.new(0, 10, 0, 420)
-imprisonBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-imprisonBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-imprisonBtn.Text = "🚨 HAREKETİ ENGELLE 🚨"
-imprisonBtn.Font = Enum.Font.GothamBold
-imprisonBtn.TextSize = 16
-imprisonBtn.Parent = mainFrame
+-- Troller butonu event
+trollBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
 
--- Serbest bırak butonu
-local freeBtn = Instance.new("TextButton")
-freeBtn.Size = UDim2.new(1, -20, 0, 45)
-freeBtn.Position = UDim2.new(0, 10, 0, 470)
-freeBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 60)
-freeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-freeBtn.Text = "🔓 HAREKETİ AÇ"
-freeBtn.Font = Enum.Font.GothamBold
-freeBtn.TextSize = 16
-freeBtn.Parent = mainFrame
+-- Kapat butonu event
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+end)
 
--- GUI'yi açmak için tuş (F tuşu)
-local UIS = game:GetService("UserInputService")
-UIS.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.F then
-        mainFrame.Visible = not mainFrame.Visible
-    end
+-- Sekme değiştirme
+freezeTab.MouseButton1Click:Connect(function()
+    freezeContent.Visible = true
+    kickContent.Visible = false
+    freezeTab.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    kickTab.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+end)
+
+kickTab.MouseButton1Click:Connect(function()
+    freezeContent.Visible = false
+    kickContent.Visible = true
+    kickTab.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    freezeTab.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 end)
 
 -- Oyuncunun hareketini engelle
-local function imprisonPlayer(targetName)
+local function freezePlayer(targetName)
     local targetPlayer = Players:FindFirstChild(targetName)
     if targetPlayer and targetPlayer.Character then
         local char = targetPlayer.Character
         
-        -- Humanoid'i bul veya bekle
         local humanoid = char:FindFirstChild("Humanoid")
         if not humanoid then
             char.ChildAdded:Wait()
@@ -93,23 +160,19 @@ local function imprisonPlayer(targetName)
         end
         
         if humanoid then
-            -- Hareketi engelle
             humanoid.WalkSpeed = 0
             humanoid.JumpPower = 0
             
-            -- RootPart'ı kilitle
             local rootPart = char:FindFirstChild("HumanoidRootPart")
             if rootPart then
                 rootPart.Anchored = true
                 
-                -- Eski kontrolleri temizle
                 for _, obj in pairs(rootPart:GetChildren()) do
                     if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") then
                         obj:Destroy()
                     end
                 end
                 
-                -- Yeni kontroller ekle
                 local bodyVelocity = Instance.new("BodyVelocity")
                 bodyVelocity.Velocity = Vector3.new(0, 0, 0)
                 bodyVelocity.MaxForce = Vector3.new(400000, 400000, 400000)
@@ -122,48 +185,14 @@ local function imprisonPlayer(targetName)
                 bodyGyro.Parent = rootPart
             end
             
-            -- Karakter değişirse tekrar kilitle
-            local function lockCharacter(newChar)
-                wait(0.5)
-                local newHumanoid = newChar:FindFirstChild("Humanoid")
-                local newRootPart = newChar:FindFirstChild("HumanoidRootPart")
-                
-                if newHumanoid then
-                    newHumanoid.WalkSpeed = 0
-                    newHumanoid.JumpPower = 0
-                end
-                
-                if newRootPart then
-                    newRootPart.Anchored = true
-                    
-                    local newBodyVelocity = Instance.new("BodyVelocity")
-                    newBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-                    newBodyVelocity.MaxForce = Vector3.new(400000, 400000, 400000)
-                    newBodyVelocity.Parent = newRootPart
-                    
-                    local newBodyGyro = Instance.new("BodyGyro")
-                    newBodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
-                    newBodyGyro.P = 10000
-                    newBodyGyro.D = 1000
-                    newBodyGyro.Parent = newRootPart
-                end
-            end
-            
-            -- Karakter değişikliklerini takip et
-            targetPlayer.CharacterAdded:Connect(lockCharacter)
-            
-            -- Hapsedilen oyuncular listesine ekle
             imprisonedPlayers[targetName] = true
-            
-            print("✅ " .. targetName .. " hareketi engellendi!")
+            print("❄️ " .. targetName .. " donutuldu!")
         end
-    else
-        print("❌ Oyuncu bulunamadı!")
     end
 end
 
 -- Oyuncunun hareketini serbest bırak
-local function freePlayer(targetName)
+local function unfreezePlayer(targetName)
     local targetPlayer = Players:FindFirstChild(targetName)
     
     if targetPlayer and targetPlayer.Character then
@@ -178,8 +207,6 @@ local function freePlayer(targetName)
         
         if rootPart then
             rootPart.Anchored = false
-            
-            -- BodyVelocity ve BodyGyro'yu temizle
             for _, obj in pairs(rootPart:GetChildren()) do
                 if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") then
                     obj:Destroy()
@@ -187,156 +214,248 @@ local function freePlayer(targetName)
             end
         end
         
-        -- Hapsedilen oyuncular listesinden çıkar
         imprisonedPlayers[targetName] = nil
-        
-        print("✅ " .. targetName .. " hareketi serbest bırakıldı!")
-    else
-        print("❌ Oyuncu bulunamadı!")
+        print("✅ " .. targetName .. " serbest bırakıldı!")
     end
 end
 
--- Tüm oyuncuları hapset
-local function imprisonAllPlayers()
+-- Oyuncuyu oyundan at
+local function kickPlayer(targetName)
+    local targetPlayer = Players:FindFirstChild(targetName)
+    if targetPlayer then
+        targetPlayer:Kick("Troller menüsü ile atıldınız! 😈")
+        print("🚪 " .. targetName .. " oyundan atıldı!")
+    end
+end
+
+-- Tüm oyuncuları donut
+local function freezeAllPlayers()
     for _, otherPlayer in pairs(Players:GetPlayers()) do
         if otherPlayer ~= player then
-            imprisonPlayer(otherPlayer.Name)
+            freezePlayer(otherPlayer.Name)
         end
     end
-    print("✅ Tüm oyuncular hapsedildi!")
+    print("❄️ Tüm oyuncular donutuldu!")
 end
 
--- Tüm oyuncuları serbest bırak
-local function freeAllPlayers()
+-- Tüm oyuncuların donunu çöz
+local function unfreezeAllPlayers()
     for _, otherPlayer in pairs(Players:GetPlayers()) do
         if otherPlayer ~= player then
-            freePlayer(otherPlayer.Name)
+            unfreezePlayer(otherPlayer.Name)
         end
     end
     print("✅ Tüm oyuncular serbest bırakıldı!")
 end
 
--- Oyuncu listesini doldur
-local function updatePlayerList()
-    playerList:ClearAllChildren()
+-- Tüm oyuncuları at
+local function kickAllPlayers()
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= player then
+            kickPlayer(otherPlayer.Name)
+        end
+    end
+    print("🚪 Tüm oyuncular atıldı!")
+end
+
+-- Donutma içeriğini oluştur
+local function createFreezeContent()
+    freezeContent:ClearAllChildren()
     
     local yOffset = 0
     
+    -- Oyuncu listesi
     for _, otherPlayer in pairs(Players:GetPlayers()) do
         if otherPlayer ~= player then
             local playerFrame = Instance.new("Frame")
-            playerFrame.Size = UDim2.new(1, 0, 0, 40)
-            playerFrame.Position = UDim2.new(0, 0, 0, yOffset)
+            playerFrame.Size = UDim2.new(1, -20, 0, 40)
+            playerFrame.Position = UDim2.new(0, 10, 0, yOffset)
             playerFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
             playerFrame.BorderSizePixel = 1
-            playerFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
-            playerFrame.Parent = playerList
+            playerFrame.Parent = freezeContent
             
             local playerName = Instance.new("TextLabel")
-            playerName.Size = UDim2.new(0.7, 0, 1, 0)
+            playerName.Size = UDim2.new(0.5, 0, 1, 0)
             playerName.Position = UDim2.new(0, 10, 0, 0)
             playerName.BackgroundTransparency = 1
-            playerName.TextColor3 = imprisonedPlayers[otherPlayer.Name] and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(255, 255, 255)
-            playerName.Text = otherPlayer.Name .. (imprisonedPlayers[otherPlayer.Name] and " 🔒" or " 🔓")
+            playerName.TextColor3 = imprisonedPlayers[otherPlayer.Name] and Color3.fromRGB(100, 200, 255) or Color3.fromRGB(255, 255, 255)
+            playerName.Text = otherPlayer.Name .. (imprisonedPlayers[otherPlayer.Name] and " ❄️" or " 🔓")
             playerName.TextXAlignment = Enum.TextXAlignment.Left
             playerName.Font = Enum.Font.Gotham
             playerName.TextSize = 14
             playerName.Parent = playerFrame
             
-            local selectBtn = Instance.new("TextButton")
-            selectBtn.Size = UDim2.new(0.25, -5, 0.7, 0)
-            selectBtn.Position = UDim2.new(0.75, 0, 0.15, 0)
-            selectBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 255)
-            selectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            selectBtn.Text = "SEÇ"
-            selectBtn.Font = Enum.Font.GothamBold
-            selectBtn.TextSize = 12
-            selectBtn.Parent = playerFrame
+            local freezeBtn = Instance.new("TextButton")
+            freezeBtn.Size = UDim2.new(0.2, -5, 0.7, 0)
+            freezeBtn.Position = UDim2.new(0.5, 5, 0.15, 0)
+            freezeBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+            freezeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            freezeBtn.Text = "DONDUR"
+            freezeBtn.Font = Enum.Font.GothamBold
+            freezeBtn.TextSize = 12
+            freezeBtn.Parent = playerFrame
             
-            selectBtn.MouseButton1Click:Connect(function()
+            local unfreezeBtn = Instance.new("TextButton")
+            unfreezeBtn.Size = UDim2.new(0.2, -5, 0.7, 0)
+            unfreezeBtn.Position = UDim2.new(0.7, 5, 0.15, 0)
+            unfreezeBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 80)
+            unfreezeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            unfreezeBtn.Text = "ÇÖZ"
+            unfreezeBtn.Font = Enum.Font.GothamBold
+            unfreezeBtn.TextSize = 12
+            unfreezeBtn.Parent = playerFrame
+            
+            freezeBtn.MouseButton1Click:Connect(function()
                 selectedPlayer = otherPlayer.Name
-                imprisonBtn.Text = "🚨 " .. otherPlayer.Name .. " ENGELLE 🚨"
-                freeBtn.Text = "🔓 " .. otherPlayer.Name .. " SERBEST BIRAK"
+                freezePlayer(otherPlayer.Name)
+                wait(0.1)
+                createFreezeContent()
+                createKickContent()
+            end)
+            
+            unfreezeBtn.MouseButton1Click:Connect(function()
+                selectedPlayer = otherPlayer.Name
+                unfreezePlayer(otherPlayer.Name)
+                wait(0.1)
+                createFreezeContent()
+                createKickContent()
             end)
             
             yOffset = yOffset + 45
         end
     end
     
-    -- Tümünü hapset/serbest bırak butonları
+    -- Tümünü dondur/çöz butonları
     local allFrame = Instance.new("Frame")
-    allFrame.Size = UDim2.new(1, 0, 0, 80)
-    allFrame.Position = UDim2.new(0, 0, 0, yOffset)
+    allFrame.Size = UDim2.new(1, -20, 0, 80)
+    allFrame.Position = UDim2.new(0, 10, 0, yOffset)
     allFrame.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     allFrame.BorderSizePixel = 1
-    allFrame.Parent = playerList
+    allFrame.Parent = freezeContent
     
-    local imprisonAllBtn = Instance.new("TextButton")
-    imprisonAllBtn.Size = UDim2.new(0.9, 0, 0, 30)
-    imprisonAllBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
-    imprisonAllBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-    imprisonAllBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    imprisonAllBtn.Text = "🚨 TÜMÜNÜ HAPSED 🚨"
-    imprisonAllBtn.Font = Enum.Font.GothamBold
-    imprisonAllBtn.TextSize = 12
-    imprisonAllBtn.Parent = allFrame
+    local freezeAllBtn = Instance.new("TextButton")
+    freezeAllBtn.Size = UDim2.new(0.9, 0, 0, 30)
+    freezeAllBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
+    freezeAllBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+    freezeAllBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    freezeAllBtn.Text = "❄️ TÜMÜNÜ DONDUR ❄️"
+    freezeAllBtn.Font = Enum.Font.GothamBold
+    freezeAllBtn.TextSize = 12
+    freezeAllBtn.Parent = allFrame
     
-    local freeAllBtn = Instance.new("TextButton")
-    freeAllBtn.Size = UDim2.new(0.9, 0, 0, 30)
-    freeAllBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
-    freeAllBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 80)
-    freeAllBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    freeAllBtn.Text = "🔓 TÜMÜNÜ SERBEST BIRAK 🔓"
-    freeAllBtn.Font = Enum.Font.GothamBold
-    freeAllBtn.TextSize = 12
-    freeAllBtn.Parent = allFrame
+    local unfreezeAllBtn = Instance.new("TextButton")
+    unfreezeAllBtn.Size = UDim2.new(0.9, 0, 0, 30)
+    unfreezeAllBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+    unfreezeAllBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 80)
+    unfreezeAllBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    unfreezeAllBtn.Text = "✅ TÜMÜNÜ ÇÖZ ✅"
+    unfreezeAllBtn.Font = Enum.Font.GothamBold
+    unfreezeAllBtn.TextSize = 12
+    unfreezeAllBtn.Parent = allFrame
     
-    imprisonAllBtn.MouseButton1Click:Connect(imprisonAllPlayers)
-    freeAllBtn.MouseButton1Click:Connect(freeAllPlayers)
+    freezeAllBtn.MouseButton1Click:Connect(function()
+        freezeAllPlayers()
+        wait(0.1)
+        createFreezeContent()
+        createKickContent()
+    end)
     
-    playerList.CanvasSize = UDim2.new(0, 0, 0, yOffset + 90)
+    unfreezeAllBtn.MouseButton1Click:Connect(function()
+        unfreezeAllPlayers()
+        wait(0.1)
+        createFreezeContent()
+        createKickContent()
+    end)
+    
+    freezeContent.CanvasSize = UDim2.new(0, 0, 0, yOffset + 90)
 end
 
--- Buton eventleri
-imprisonBtn.MouseButton1Click:Connect(function()
-    if selectedPlayer then
-        imprisonPlayer(selectedPlayer)
-        wait(0.1)
-        updatePlayerList()
-    else
-        print("❌ Lütfen önce bir oyuncu seçin!")
-    end
-end)
-
-freeBtn.MouseButton1Click:Connect(function()
-    if selectedPlayer then
-        freePlayer(selectedPlayer)
-        wait(0.1)
-        updatePlayerList()
-    else
-        print("❌ Lütfen önce bir oyuncu seçin!")
-    end
-end)
-
--- Oyuncu listesini güncelle
-updatePlayerList()
-Players.PlayerAdded:Connect(updatePlayerList)
-Players.PlayerRemoving:Connect(updatePlayerList)
-
--- Başlangıç mesajı
-print("🎯 HAREKET ENGELLEYİCİ SİSTEM YÜKLENDİ!")
-print("📝 F tuşuna basarak GUI'yi aç/kapat")
-print("👤 Oyuncu seç ve HAREKETİ ENGELLE butonuna tıkla!")
-print("🚫 Hapsedilen oyuncular HİÇBİR ŞEKİLDE HAREKET EDEMEZ!")
-
--- Mevcut oyuncuları kontrol et
-spawn(function()
-    wait(2)
+-- Oyundan atma içeriğini oluştur
+local function createKickContent()
+    kickContent:ClearAllChildren()
+    
+    local yOffset = 0
+    
     for _, otherPlayer in pairs(Players:GetPlayers()) do
         if otherPlayer ~= player then
-            if imprisonedPlayers[otherPlayer.Name] then
-                imprisonPlayer(otherPlayer.Name)
-            end
+            local playerFrame = Instance.new("Frame")
+            playerFrame.Size = UDim2.new(1, -20, 0, 40)
+            playerFrame.Position = UDim2.new(0, 10, 0, yOffset)
+            playerFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            playerFrame.BorderSizePixel = 1
+            playerFrame.Parent = kickContent
+            
+            local playerName = Instance.new("TextLabel")
+            playerName.Size = UDim2.new(0.6, 0, 1, 0)
+            playerName.Position = UDim2.new(0, 10, 0, 0)
+            playerName.BackgroundTransparency = 1
+            playerName.TextColor3 = Color3.fromRGB(255, 255, 255)
+            playerName.Text = otherPlayer.Name
+            playerName.TextXAlignment = Enum.TextXAlignment.Left
+            playerName.Font = Enum.Font.Gotham
+            playerName.TextSize = 14
+            playerName.Parent = playerFrame
+            
+            local kickBtn = Instance.new("TextButton")
+            kickBtn.Size = UDim2.new(0.3, -5, 0.7, 0)
+            kickBtn.Position = UDim2.new(0.6, 5, 0.15, 0)
+            kickBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+            kickBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            kickBtn.Text = "🚪 AT"
+            kickBtn.Font = Enum.Font.GothamBold
+            kickBtn.TextSize = 12
+            kickBtn.Parent = playerFrame
+            
+            kickBtn.MouseButton1Click:Connect(function()
+                selectedPlayer = otherPlayer.Name
+                kickPlayer(otherPlayer.Name)
+            end)
+            
+            yOffset = yOffset + 45
         end
     end
+    
+    -- Tümünü at butonu
+    local kickAllFrame = Instance.new("Frame")
+    kickAllFrame.Size = UDim2.new(1, -20, 0, 50)
+    kickAllFrame.Position = UDim2.new(0, 10, 0, yOffset)
+    kickAllFrame.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    kickAllFrame.BorderSizePixel = 1
+    kickAllFrame.Parent = kickContent
+    
+    local kickAllBtn = Instance.new("TextButton")
+    kickAllBtn.Size = UDim2.new(0.9, 0, 0, 30)
+    kickAllBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
+    kickAllBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    kickAllBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    kickAllBtn.Text = "🚪 TÜMÜNÜ AT 🚪"
+    kickAllBtn.Font = Enum.Font.GothamBold
+    kickAllBtn.TextSize = 14
+    kickAllBtn.Parent = kickAllFrame
+    
+    kickAllBtn.MouseButton1Click:Connect(kickAllPlayers)
+    
+    kickContent.CanvasSize = UDim2.new(0, 0, 0, yOffset + 60)
+end
+
+-- İçerikleri oluştur
+createFreezeContent()
+createKickContent()
+
+-- Oyuncu değişikliklerini takip et
+Players.PlayerAdded:Connect(function()
+    wait(0.5)
+    createFreezeContent()
+    createKickContent()
 end)
+
+Players.PlayerRemoving:Connect(function()
+    wait(0.1)
+    createFreezeContent()
+    createKickContent()
+end)
+
+-- Başlangıç mesajı
+print("🎮 TROLLER MENÜSÜ YÜKLENDİ!")
+print("📝 Sol taraftaki TROLLER butonuna tıkla!")
+print("❄️ Donutma ve 🚪 Oyundan atma seçenekleri mevcut!")
