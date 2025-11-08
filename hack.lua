@@ -28,7 +28,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- ANA BUTON - Tıklanınca GUI açılacak
+-- Ana buton - Turuncu Kurt
 local mainButton = Instance.new("TextButton")
 mainButton.Size = UDim2.new(0, 130, 0, 50)
 mainButton.Position = UDim2.new(0, 20, 0, 20)
@@ -62,15 +62,13 @@ mainButton.Draggable = true
 -- Buton hover efekti
 mainButton.MouseEnter:Connect(function()
     TweenService:Create(mbStroke, TweenInfo.new(0.2), {Thickness = 4}):Play()
-    TweenService:Create(mainButton, TweenInfo.new(0.2), {TextColor3 = wolfColors.secondary}):Play()
 end)
 
 mainButton.MouseLeave:Connect(function()
     TweenService:Create(mbStroke, TweenInfo.new(0.2), {Thickness = 3}):Play()
-    TweenService:Create(mainButton, TweenInfo.new(0.2), {TextColor3 = wolfColors.primary}):Play()
 end)
 
--- PANEL - Tıklanınca açılacak GUI
+-- Panel - Turuncu Kurt teması
 local panel = Instance.new("Frame")
 panel.Size = UDim2.new(0, 0, 0, 500)
 panel.Position = UDim2.new(1, -20, 0.5, -250)
@@ -268,39 +266,26 @@ local flyKeyBtn, contentY = createButton("Fly Tuşu: F (Değiştir)", contentY, 
 -- Canvas size güncelle
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentY + 20)
 
--- PANEL AÇMA/KAPAMA SİSTEMİ
+-- Panel animasyonları (sağdan genişleyen)
 local panelOpen = false
 local openTweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local closeTweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 local openGoal = {Size = UDim2.new(0, 400, 0, 500)}
 local closeGoal = {Size = UDim2.new(0, 0, 0, 500)}
 
-local function openPanel()
+local function togglePanel()
     if not panelOpen then
-        panel.Visible = true
         TweenService:Create(panel, openTweenInfo, openGoal):Play()
+        panel.Visible = true
         panelOpen = true
-    end
-end
-
-local function closePanel()
-    if panelOpen then
+    else
         TweenService:Create(panel, closeTweenInfo, closeGoal):Play()
         panelOpen = false
     end
 end
 
-local function togglePanel()
-    if not panelOpen then
-        openPanel()
-    else
-        closePanel()
-    end
-end
-
--- ANA BUTON TIKLAMA OLAYI
 mainButton.MouseButton1Click:Connect(togglePanel)
-closeBtn.MouseButton1Click:Connect(closePanel)
+closeBtn.MouseButton1Click:Connect(togglePanel)
 
 -- HİLE SİSTEMLERİ --
 -- Fly Sistemi
@@ -534,4 +519,4 @@ if player.Character then
     end
 end
 
-print("🦊 Frox Hack yüklendi! Butona tıkla.")
+print("🦊 Frox Hack Turuncu Kurt yüklendi! Butona tıkla.")
