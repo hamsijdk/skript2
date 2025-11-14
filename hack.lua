@@ -1,513 +1,366 @@
--- Frox Hack GUI | Turuncu Kurt Tasarımı
+-- Gerçek Hapis Sistemi - Server Side
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
 
--- Turuncu Kurt renkleri
-local wolfColors = {
-    primary = Color3.fromRGB(255, 140, 0),    -- Ana turuncu
-    secondary = Color3.fromRGB(255, 165, 0),  -- Açık turuncu
-    accent = Color3.fromRGB(255, 200, 100),   -- Sarımsı turuncu
-    dark = Color3.fromRGB(40, 30, 20),        -- Koyu kahve
-    background = Color3.fromRGB(25, 20, 15)   -- Arkaplan
+-- Server script olduğunu kontrol et
+if RunService:IsClient() then
+    error("Bu script Server'da çalıştırılmalı!")
+    return
+end
+
+-- GUI'yi client'a gönder
+local function createPrisonGUI(player)
+    local PlayerGui = player:WaitForChild("PlayerGui")
+    
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "PrisonControl"
+    ScreenGui.Parent = PlayerGui
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 300, 0, 400)
+    MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    MainFrame.BorderSizePixel = 2
+    MainFrame.BorderColor3 = Color3.fromRGB(100, 100, 150)
+    MainFrame.Parent = ScreenGui
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 10)
+    UICorner.Parent = MainFrame
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(0, 280, 0, 40)
+    TitleLabel.Position = UDim2.new(0, 10, 0, 10)
+    TitleLabel.Text = "🔒 Hapis Kontrol Paneli"
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextSize = 18
+    TitleLabel.Parent = MainFrame
+
+    local ScrollFrame = Instance.new("ScrollingFrame")
+    ScrollFrame.Size = UDim2.new(0, 280, 0, 300)
+    ScrollFrame.Position = UDim2.new(0, 10, 0, 60)
+    ScrollFrame.BackgroundTransparency = 1
+    ScrollFrame.ScrollBarThickness = 6
+    ScrollFrame.Parent = MainFrame
+
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.Padding = UDim.new(0, 5)
+    UIListLayout.Parent = ScrollFrame
+
+    return ScreenGui, ScrollFrame
+end
+
+-- Global hapis verisi
+local prisonData = {
+    imprisonedPlayers = {},
+    prisonCells = {}
 }
 
--- Ayarlar
-local flying, noclip, antiGravity = false, false, false
-local flySpeed = 50
-local walkSpeed = 16
-local jumpPower = 50
-local control = {F = 0, B = 0, L = 0, R = 0, U = 0, D = 0}
-local bodyGyro, bodyVelocity
-local flyKey = Enum.KeyCode.F
-
--- GUI sistemi
-local screenGui = Instance.new("ScreenGui")
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
--- Ana buton - Turuncu Kurt
-local mainButton = Instance.new("TextButton")
-mainButton.Size = UDim2.new(0, 120, 0, 45)
-mainButton.Position = UDim2.new(0, 20, 0, 20)
-mainButton.Text = "🦊 FROX"
-mainButton.Font = Enum.Font.GothamBlack
-mainButton.TextSize = 16
-mainButton.TextColor3 = wolfColors.primary -- Frox yazısı turuncu
-mainButton.BackgroundColor3 = Color3.new(0, 0, 0) -- Siyah arkaplan
-mainButton.BorderSizePixel = 0
-mainButton.AutoButtonColor = true
-mainButton.Active = true
-mainButton.Parent = screenGui
-
--- Buton gradient efekti
-local buttonGradient = Instance.new("UIGradient")
-buttonGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.new(0, 0, 0)),
-    ColorSequenceKeypoint.new(1, Color3.new(0.1, 0.1, 0.1))
-})
-buttonGradient.Rotation = 45
-buttonGradient.Parent = mainButton
-
-local mbCorner = Instance.new("UICorner", mainButton)
-mbCorner.CornerRadius = UDim.new(0, 10)
-local mbStroke = Instance.new("UIStroke", mainButton)
-mbStroke.Color = wolfColors.primary -- Turuncu çerçeve
-mbStroke.Thickness = 2
-
-mainButton.Draggable = true
-
--- Panel - Turuncu Kurt teması
-local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 0, 0, 500)
-panel.Position = UDim2.new(1, -20, 0.5, -250)
-panel.AnchorPoint = Vector2.new(1, 0.5)
-panel.BackgroundColor3 = wolfColors.background
-panel.BorderSizePixel = 0
-panel.Visible = false
-panel.Parent = screenGui
-panel.ClipsDescendants = true
-
--- Panel gradient
-local panelGradient = Instance.new("UIGradient")
-panelGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, wolfColors.background),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(35, 25, 15))
-})
-panelGradient.Parent = panel
-
-local panelCorner = Instance.new("UICorner", panel)
-panelCorner.CornerRadius = UDim.new(0, 15)
-local panelStroke = Instance.new("UIStroke", panel)
-panelStroke.Color = wolfColors.primary -- Turuncu çerçeve
-panelStroke.Thickness = 2
-
--- Başlık bar - Turuncu Kurt
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 50)
-titleBar.BackgroundColor3 = wolfColors.primary
-titleBar.BorderSizePixel = 0
-titleBar.Parent = panel
-
--- Başlık gradient
-local titleGradient = Instance.new("UIGradient")
-titleGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, wolfColors.primary),
-    ColorSequenceKeypoint.new(1, wolfColors.secondary)
-})
-titleGradient.Rotation = 90
-titleGradient.Parent = titleBar
-
-local titleCorner = Instance.new("UICorner", titleBar)
-titleCorner.CornerRadius = UDim.new(0, 15)
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -80, 1, 0)
-titleLabel.Position = UDim2.new(0, 15, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "🦊 FROX HACK"
-titleLabel.TextColor3 = Color3.new(1, 1, 1)
-titleLabel.Font = Enum.Font.GothamBlack
-titleLabel.TextSize = 16
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = titleBar
-
--- Kapat butonu
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -40, 0, 10)
-closeBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 60)
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.Text = "✕"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
-closeBtn.BorderSizePixel = 0
-closeBtn.Parent = titleBar
-
-local closeCorner = Instance.new("UICorner", closeBtn)
-closeCorner.CornerRadius = UDim.new(0, 6)
-
--- İçerik alanı
-local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, -20, 1, -70)
-contentFrame.Position = UDim2.new(0, 10, 0, 60)
-contentFrame.BackgroundTransparency = 1
-contentFrame.Parent = panel
-
--- Scroll frame
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, 0, 1, 0)
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.ScrollBarThickness = 6
-scrollFrame.ScrollBarImageColor3 = wolfColors.secondary
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 500)
-scrollFrame.Parent = contentFrame
-
--- UI Helper fonksiyonları
-local contentY = 0
-
-local function createSection(title, y)
-    local section = Instance.new("Frame")
-    section.Size = UDim2.new(1, 0, 0, 35)
-    section.Position = UDim2.new(0, 0, 0, y)
-    section.BackgroundTransparency = 1
-    section.Parent = scrollFrame
+-- Gerçek hapis hücresi oluştur
+function createPrisonCell(position)
+    local cell = Instance.new("Model")
+    cell.Name = "PrisonCell"
     
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = "🦊 " .. title
-    label.TextColor3 = wolfColors.accent
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = section
+    -- Hücre zemin
+    local floor = Instance.new("Part")
+    floor.Size = Vector3.new(20, 2, 20)
+    floor.Position = position + Vector3.new(0, -3, 0)
+    floor.Anchored = true
+    floor.CanCollide = true
+    floor.Material = Enum.ConcreteMaterial
+    floor.BrickColor = BrickColor.new("Dark stone grey")
+    floor.Name = "Floor"
+    floor.Parent = cell
     
-    return y + 40
-end
-
-local function createButton(text, y, icon)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 40)
-    btn.Position = UDim2.new(0, 0, 0, y)
-    btn.BackgroundColor3 = wolfColors.dark
-    btn.Text = icon .. " " .. text
-    btn.TextColor3 = wolfColors.accent
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 13
-    btn.BorderSizePixel = 0
-    btn.Parent = scrollFrame
+    -- Duvarlar
+    local wallHeight = 15
+    local wallThickness = 2
     
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
+    local walls = {
+        {pos = Vector3.new(10, wallHeight/2-1.5, 0), size = Vector3.new(wallThickness, wallHeight, 20)}, -- Sağ
+        {pos = Vector3.new(-10, wallHeight/2-1.5, 0), size = Vector3.new(wallThickness, wallHeight, 20)}, -- Sol
+        {pos = Vector3.new(0, wallHeight/2-1.5, 10), size = Vector3.new(20, wallHeight, wallThickness)}, -- Ön
+        {pos = Vector3.new(0, wallHeight/2-1.5, -10), size = Vector3.new(20, wallHeight, wallThickness)} -- Arka
+    }
     
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = wolfColors.primary -- Turuncu çerçeve
-    stroke.Thickness = 1
-    stroke.Parent = btn
-    
-    return btn, y + 50
-end
-
-local function createSlider(text, y, currentVal, minVal, maxVal)
-    local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, 0, 0, 60)
-    sliderFrame.Position = UDim2.new(0, 0, 0, y)
-    sliderFrame.BackgroundTransparency = 1
-    sliderFrame.Parent = scrollFrame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 25)
-    label.Position = UDim2.new(0, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text .. " : " .. currentVal
-    label.TextColor3 = wolfColors.accent
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 13
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = sliderFrame
-    
-    local bg = Instance.new("Frame")
-    bg.Size = UDim2.new(1, 0, 0, 18)
-    bg.Position = UDim2.new(0, 0, 0, 30)
-    bg.BackgroundColor3 = wolfColors.dark
-    bg.BorderSizePixel = 0
-    bg.Parent = sliderFrame
-    
-    local bgCorner = Instance.new("UICorner")
-    bgCorner.CornerRadius = UDim.new(0, 9)
-    bgCorner.Parent = bg
-    
-    local fill = Instance.new("Frame")
-    local frac = (currentVal - minVal) / (maxVal - minVal)
-    fill.Size = UDim2.new(frac, 0, 1, 0)
-    fill.BackgroundColor3 = wolfColors.primary
-    fill.BorderSizePixel = 0
-    fill.Parent = bg
-    
-    local fillCorner = Instance.new("UICorner")
-    fillCorner.CornerRadius = UDim.new(0, 9)
-    fillCorner.Parent = fill
-    
-    return label, bg, fill, minVal, maxVal, y + 70
-end
-
--- GUI İÇERİĞİ - Genel Hileler
-contentY = createSection("GENEL HİLELER", contentY)
-
-local flyBtn, contentY = createButton("Fly: Kapalı (F Tuşu)", contentY, "🛸")
-local antiGravityBtn, contentY = createButton("Anti-Gravity: Kapalı", contentY, "🪂")
-local noClipBtn, contentY = createButton("NoClip: Kapalı", contentY, "🚷")
-
-contentY = contentY + 10
-contentY = createSection("AYARLAR", contentY)
-
-local flyLabel, flySliderBG, flySliderFill, flyMin, flyMax, contentY = createSlider("Fly Hızı", contentY, flySpeed, 1, 200)
-local walkLabel, walkSliderBG, walkSliderFill, walkMin, walkMax, contentY = createSlider("Yürüme Hızı", contentY, walkSpeed, 16, 150)
-local jumpLabel, jumpSliderBG, jumpSliderFill, jumpMin, jumpMax, contentY = createSlider("Zıplama Gücü", contentY, jumpPower, 50, 300)
-
-contentY = contentY + 10
-contentY = createSection("SİSTEM", contentY)
-
-local flyKeyBtn, contentY = createButton("Fly Tuşu: F (Değiştir)", contentY, "⌨️")
-
--- Canvas size güncelle
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentY + 20)
-
--- Panel animasyonları (sağdan genişleyen)
-local panelOpen = false
-local openTweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local closeTweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-local openGoal = {Size = UDim2.new(0, 400, 0, 500)}
-local closeGoal = {Size = UDim2.new(0, 0, 0, 500)}
-
-local function togglePanel()
-    if not panelOpen then
-        TweenService:Create(panel, openTweenInfo, openGoal):Play()
-        panel.Visible = true
-        panelOpen = true
-    else
-        TweenService:Create(panel, closeTweenInfo, closeGoal):Play()
-        panelOpen = false
-    end
-end
-
-mainButton.MouseButton1Click:Connect(togglePanel)
-closeBtn.MouseButton1Click:Connect(togglePanel)
-
--- HİLE SİSTEMLERİ --
--- Fly Sistemi
-local function startFly()
-    if flying then return end
-    flying = true
-    
-    local character = player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then
-        flying = false
-        return
+    for i, wallData in ipairs(walls) do
+        local wall = Instance.new("Part")
+        wall.Size = wallData.size
+        wall.Position = position + wallData.pos
+        wall.Anchored = true
+        wall.CanCollide = true
+        wall.Material = Enum.MetalMaterial
+        wall.BrickColor = BrickColor.new("Dark grey")
+        wall.Name = "Wall_" .. i
+        wall.Parent = cell
+        
+        -- Görünmez bariyer ekle (güvenlik için)
+        local barrier = Instance.new("Part")
+        barrier.Size = wallData.size + Vector3.new(0, 5, 0)
+        barrier.Position = position + wallData.pos
+        barrier.Anchored = true
+        barrier.CanCollide = true
+        barrier.Transparency = 1
+        barrier.Name = "Barrier_" .. i
+        barrier.Parent = cell
     end
     
-    local rootPart = character.HumanoidRootPart
+    -- Tavan
+    local ceiling = Instance.new("Part")
+    ceiling.Size = Vector3.new(20, 2, 20)
+    ceiling.Position = position + Vector3.new(0, wallHeight - 1, 0)
+    ceiling.Anchored = true
+    ceiling.CanCollide = true
+    ceiling.Material = Enum.MetalMaterial
+    ceiling.BrickColor = BrickColor.new("Dark grey")
+    ceiling.Name = "Ceiling"
+    ceiling.Parent = cell
     
-    if bodyGyro then bodyGyro:Destroy() end
-    if bodyVelocity then bodyVelocity:Destroy() end
-    
-    bodyGyro = Instance.new("BodyGyro")
-    bodyVelocity = Instance.new("BodyVelocity")
-    
-    bodyGyro.P = 10000
-    bodyGyro.MaxTorque = Vector3.new(40000, 40000, 40000)
-    bodyGyro.CFrame = rootPart.CFrame
-    bodyGyro.Parent = rootPart
-    
-    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    bodyVelocity.MaxForce = Vector3.new(40000, 40000, 40000)
-    bodyVelocity.Parent = rootPart
-    
-    character.Humanoid.PlatformStand = true
-    flyBtn.Text = "🛸 Fly: Açık (F Tuşu)"
-    
-    local flyLoop
-    flyLoop = RunService.Heartbeat:Connect(function()
-        if not flying or not character or not rootPart.Parent then
-            flyLoop:Disconnect()
-            return
-        end
-        
-        local cam = workspace.CurrentCamera
-        bodyGyro.CFrame = cam.CFrame
-        
-        local direction = Vector3.new()
-        if control.F > 0 then direction += cam.CFrame.LookVector end
-        if control.B > 0 then direction -= cam.CFrame.LookVector end
-        if control.L > 0 then direction -= cam.CFrame.RightVector end
-        if control.R > 0 then direction += cam.CFrame.RightVector end
-        if control.U > 0 then direction += Vector3.new(0, 1, 0) end
-        if control.D > 0 then direction += Vector3.new(0, -1, 0) end
-        
-        if direction.Magnitude > 0 then
-            direction = direction.Unit
-        end
-        
-        bodyVelocity.Velocity = direction * flySpeed
-    end)
+    cell.Parent = workspace
+    return cell
 end
 
-local function stopFly()
-    flying = false
-    local character = player.Character
+-- Oyuncuyu hapse at
+function imprisonPlayer(targetPlayer, imprisoner)
+    if prisonData.imprisonedPlayers[targetPlayer] then
+        return false -- Zaten hapiste
+    end
+    
+    -- Hücre pozisyonu
+    local cellPosition = Vector3.new(0, 10, 0) + Vector3.new(
+        (math.random() - 0.5) * 100,
+        0,
+        (math.random() - 0.5) * 100
+    )
+    
+    -- Hücre oluştur
+    local cell = createPrisonCell(cellPosition)
+    prisonData.prisonCells[targetPlayer] = cell
+    
+    -- Oyuncuyu hücreye ışınla
+    local character = targetPlayer.Character
     if character then
-        character.Humanoid.PlatformStand = false
-        if bodyGyro then bodyGyro:Destroy() end
-        if bodyVelocity then bodyVelocity:Destroy() end
-    end
-    flyBtn.Text = "🛸 Fly: Kapalı (F Tuşu)"
-end
-
--- Anti-Gravity
-local function toggleAntiGravity()
-    antiGravity = not antiGravity
-    antiGravityBtn.Text = antiGravity and "🪂 Anti-Gravity: Açık" or "🪂 Anti-Gravity: Kapalı"
-end
-
--- KONTROLLER
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == flyKey then
-        if flying then stopFly() else startFly() end
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            humanoidRootPart.CFrame = CFrame.new(cellPosition + Vector3.new(0, 5, 0))
+        end
     end
     
-    if flying then
-        local key = input.KeyCode
-        if key == Enum.KeyCode.W then control.F = 1
-        elseif key == Enum.KeyCode.S then control.B = 1
-        elseif key == Enum.KeyCode.A then control.L = 1
-        elseif key == Enum.KeyCode.D then control.R = 1
-        elseif key == Enum.KeyCode.Space then control.U = 1
-        elseif key == Enum.KeyCode.LeftShift then control.D = 1 end
+    -- Hapis verisini kaydet
+    prisonData.imprisonedPlayers[targetPlayer] = {
+        cell = cell,
+        imprisoner = imprisoner,
+        timeImprisoned = os.time()
+    }
+    
+    -- Kaçışı önleme sistemini başlat
+    preventEscape(targetPlayer)
+    
+    return true
+end
+
+-- Oyuncuyu serbest bırak
+function releasePlayer(targetPlayer)
+    local prisonInfo = prisonData.imprisonedPlayers[targetPlayer]
+    if not prisonInfo then return false end
+    
+    -- Hücreyi temizle
+    if prisonInfo.cell and prisonInfo.cell.Parent then
+        prisonInfo.cell:Destroy()
     end
-end)
+    
+    -- Veriyi temizle
+    prisonData.imprisonedPlayers[targetPlayer] = nil
+    prisonData.prisonCells[targetPlayer] = nil
+    
+    return true
+end
 
-UserInputService.InputEnded:Connect(function(input)
-    local key = input.KeyCode
-    if key == Enum.KeyCode.W then control.F = 0
-    elseif key == Enum.KeyCode.S then control.B = 0
-    elseif key == Enum.KeyCode.A then control.L = 0
-    elseif key == Enum.KeyCode.D then control.R = 0
-    elseif key == Enum.KeyCode.Space then control.U = 0
-    elseif key == Enum.KeyCode.LeftShift then control.D = 0 end
-end)
-
--- BUTON EVENT'LERİ
-flyBtn.MouseButton1Click:Connect(function()
-    if flying then stopFly() else startFly() end
-end)
-
-noClipBtn.MouseButton1Click:Connect(function()
-    noclip = not noclip
-    noClipBtn.Text = noclip and "🚷 NoClip: Açık" or "🚷 NoClip: Kapalı"
-end)
-
-antiGravityBtn.MouseButton1Click:Connect(toggleAntiGravity)
-
--- Fly tuş değiştirme
-local waitingForKey = false
-flyKeyBtn.MouseButton1Click:Connect(function()
-    if not waitingForKey then
-        waitingForKey = true
-        flyKeyBtn.Text = "⌨️ Yeni tuşa basın..."
+-- Kaçışı önleme sistemi
+function preventEscape(player)
+    local escapeCheckConnection
+    local characterAddedConnection
+    
+    local function checkEscape(character)
+        if not character then return end
         
-        local connection
-        connection = UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                flyKey = input.KeyCode
-                local keyName = tostring(flyKey):gsub("Enum.KeyCode.", "")
-                flyKeyBtn.Text = "⌨️ Fly Tuşu: " .. keyName
-                flyBtn.Text = "🛸 Fly: Kapalı (" .. keyName .. " Tuşu)"
-                waitingForKey = false
-                connection:Disconnect()
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+        if not humanoidRootPart then return end
+        
+        escapeCheckConnection = RunService.Heartbeat:Connect(function()
+            local prisonInfo = prisonData.imprisonedPlayers[player]
+            if not prisonInfo or not prisonInfo.cell then
+                if escapeCheckConnection then
+                    escapeCheckConnection:Disconnect()
+                end
+                return
+            end
+            
+            local cellPosition = prisonInfo.cell:GetPivot().Position
+            local playerPosition = humanoidRootPart.Position
+            
+            -- Hücre dışına çıkmışsa geri ışınla
+            if (playerPosition - cellPosition).Magnitude > 12 then
+                humanoidRootPart.CFrame = CFrame.new(cellPosition + Vector3.new(0, 5, 0))
+                
+                -- Client'a mesaj gönder
+                local releaseEvent = Instance.new("RemoteEvent")
+                releaseEvent.Name = "PrisonMessage"
+                releaseEvent.OnServerEvent:Connect(function() end)
+                releaseEvent:FireClient(player, "⚠️ Hücreden kaçamazsın!")
+                releaseEvent:Destroy()
             end
         end)
     end
-end)
-
--- SLIDER SİSTEMİ
-local function setupSlider(sliderBG, sliderFill, label, minVal, maxVal, onChange)
-    local dragging = false
     
-    local function updateValue(x)
-        local frac = math.clamp(x / sliderBG.AbsoluteSize.X, 0, 1)
-        local value = math.floor(minVal + frac * (maxVal - minVal))
-        sliderFill.Size = UDim2.new(frac, 0, 1, 0)
-        label.Text = string.gsub(label.Text, " : %d+", " : " .. value)
-        onChange(value)
+    -- Mevcut karakteri kontrol et
+    if player.Character then
+        checkEscape(player.Character)
     end
     
-    sliderBG.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            updateValue(input.Position.X - sliderBG.AbsolutePosition.X)
-        end
+    -- Yeni karakter spawn olduğunda kontrol et
+    characterAddedConnection = player.CharacterAdded:Connect(function(character)
+        checkEscape(character)
     end)
     
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateValue(input.Position.X - sliderBG.AbsolutePosition.X)
+    -- Temizleme fonksiyonu
+    prisonData.imprisonedPlayers[player].cleanup = function()
+        if escapeCheckConnection then
+            escapeCheckConnection:Disconnect()
         end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
+        if characterAddedConnection then
+            characterAddedConnection:Disconnect()
         end
-    end)
+    end
 end
 
--- Slider kurulum
-setupSlider(flySliderBG, flySliderFill, flyLabel, flyMin, flyMax, function(val) flySpeed = val end)
-setupSlider(walkSliderBG, walkSliderFill, walkLabel, walkMin, walkMax, function(val) 
-    walkSpeed = val 
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = walkSpeed
+-- GUI'yi güncelle
+function updatePrisonGUI(scrollFrame, imprisoner)
+    scrollFrame:ClearAllChildren()
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= imprisoner then
+            local playerFrame = Instance.new("Frame")
+            playerFrame.Size = UDim2.new(0, 260, 0, 60)
+            playerFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+            playerFrame.Parent = scrollFrame
+            
+            local UICorner = Instance.new("UICorner")
+            UICorner.CornerRadius = UDim.new(0, 6)
+            UICorner.Parent = playerFrame
+            
+            local playerName = Instance.new("TextLabel")
+            playerName.Size = UDim2.new(0, 150, 0, 30)
+            playerName.Position = UDim2.new(0, 10, 0, 5)
+            playerName.Text = player.Name
+            playerName.TextColor3 = Color3.fromRGB(255, 255, 255)
+            playerName.BackgroundTransparency = 1
+            playerName.Font = Enum.Font.Gotham
+            playerName.TextSize = 14
+            playerName.Parent = playerFrame
+            
+            local statusLabel = Instance.new("TextLabel")
+            statusLabel.Size = UDim2.new(0, 150, 0, 20)
+            statusLabel.Position = UDim2.new(0, 10, 0, 35)
+            statusLabel.Text = prisonData.imprisonedPlayers[player] and "🔒 Hapiste" or "🟢 Serbest"
+            statusLabel.TextColor3 = prisonData.imprisonedPlayers[player] and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(100, 255, 100)
+            statusLabel.BackgroundTransparency = 1
+            statusLabel.Font = Enum.Font.Gotham
+            statusLabel.TextSize = 12
+            statusLabel.Parent = playerFrame
+            
+            local imprisonButton = Instance.new("TextButton")
+            imprisonButton.Size = UDim2.new(0, 80, 0, 25)
+            imprisonButton.Position = UDim2.new(0, 170, 0, 5)
+            imprisonButton.Text = "Hapsed"
+            imprisonButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            imprisonButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+            imprisonButton.Font = Enum.Font.GothamBold
+            imprisonButton.TextSize = 12
+            imprisonButton.Parent = playerFrame
+            
+            local releaseButton = Instance.new("TextButton")
+            releaseButton.Size = UDim2.new(0, 80, 0, 25)
+            releaseButton.Position = UDim2.new(0, 170, 0, 35)
+            releaseButton.Text = "Serbest Bırak"
+            releaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            releaseButton.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+            releaseButton.Font = Enum.Font.GothamBold
+            releaseButton.TextSize = 12
+            releaseButton.Parent = playerFrame
+            
+            local buttonCorner = Instance.new("UICorner")
+            buttonCorner.CornerRadius = UDim.new(0, 4)
+            buttonCorner.Parent = imprisonButton
+            buttonCorner:Clone().Parent = releaseButton
+            
+            imprisonButton.MouseButton1Click:Connect(function()
+                imprisonPlayer(player, imprisoner)
+                updatePrisonGUI(scrollFrame, imprisoner)
+            end)
+            
+            releaseButton.MouseButton1Click:Connect(function()
+                releasePlayer(player)
+                updatePrisonGUI(scrollFrame, imprisoner)
+            end)
+        end
     end
-end)
-setupSlider(jumpSliderBG, jumpSliderFill, jumpLabel, jumpMin, jumpMax, function(val) 
-    jumpPower = val 
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = jumpPower
-    end
-end)
+end
 
--- NOCLIP SİSTEMİ
-RunService.Stepped:Connect(function()
-    if noclip and player.Character then
-        for _, part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+-- Ana sistem
+Players.PlayerAdded:Connect(function(player)
+    -- Her oyuncu için GUI oluştur
+    local screenGui, scrollFrame = createPrisonGUI(player)
+    
+    -- F tuşu ile GUI aç/kapa
+    local guiVisible = false
+    
+    local function onInput(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == Enum.KeyCode.F then
+            guiVisible = not guiVisible
+            screenGui.Enabled = guiVisible
+            
+            if guiVisible then
+                updatePrisonGUI(scrollFrame, player)
             end
         end
     end
-end)
-
--- ANTI-GRAVITY SİSTEMİ
-RunService.Heartbeat:Connect(function()
-    if antiGravity and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.Velocity = Vector3.new(
-            player.Character.HumanoidRootPart.Velocity.X,
-            0,
-            player.Character.HumanoidRootPart.Velocity.Z
-        )
-    end
-end)
-
--- KARAKTER TAKİP
-player.CharacterAdded:Connect(function(character)
-    character:WaitForChild("Humanoid")
-    wait(0.5)
     
-    if character:FindFirstChild("Humanoid") then
-        character.Humanoid.WalkSpeed = walkSpeed
-        character.Humanoid.JumpPower = jumpPower
-    end
+    -- Input için remote event
+    local inputEvent = Instance.new("RemoteEvent")
+    inputEvent.Name = "PrisonInput"
+    inputEvent.Parent = player:WaitForChild("PlayerGui")
     
-    if flying then
-        stopFly()
-        wait(0.2)
-        startFly()
-    end
+    inputEvent.OnServerEvent:Connect(function(plr, keyCode)
+        if plr == player then
+            onInput({KeyCode = keyCode}, false)
+        end
+    end)
 end)
 
--- BAŞLANGIÇ AYARLARI
-if player.Character then
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = walkSpeed
-        humanoid.JumpPower = jumpPower
-    end
-end
+-- Client input script (LocalScript olarak çalıştırılacak)
+local clientInputScript = [[
+    local Players = game:GetService("Players")
+    local UserInputService = game:GetService("UserInputService")
+    local player = Players.LocalPlayer
+    local PlayerGui = player:WaitForChild("PlayerGui")
+    
+    local inputEvent = PlayerGui:WaitForChild("PrisonInput")
+    
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == Enum.KeyCode.F then
+            inputEvent:FireServer(input.KeyCode)
+        end
+    end)
+]]
 
-print("🦊 Frox Hack Turuncu Kurt yüklendi! Butona tıkla.")
+print("🔒 Gerçek Hapis Sistemi Aktif!")
+print("F tuşu ile kontrol panelini açabilirsin")
+print("Her oyuncu gerçekten hapisten çıkamaz!")
