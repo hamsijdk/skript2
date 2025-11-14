@@ -1,99 +1,124 @@
--- SAHTE VİRÜS KORKU EFEKTİ (ZARARSIZ)
--- Sadece görsel + ses efekti, bilgisayara zarar vermez
 
-local player = game.Players.LocalPlayer
-local UIS = game:GetService("UserInputService")
 
--- Ekran GUI
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "VirusFX"
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayerScripts = game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
+local Workspace = game:GetService("Workspace")
 
--- Oyuncuyu kilitle
-local function lockControls()
-    UIS.InputBegan:Connect(function(input)
-        if true then return end
-    end)
+-- ==============================
+-- 1) RemoteEvent otomatik
+-- ==============================
+local Remote = ReplicatedStorage:FindFirstChild("CezaBaslat")
+if not Remote then
+    Remote = Instance.new("RemoteEvent")
+    Remote.Name = "CezaBaslat"
+    Remote.Parent = ReplicatedStorage
+    print("✔ RemoteEvent oluşturuldu: CezaBaslat")
 end
-lockControls()
 
--- Arka plan kırmızı
-local bg = Instance.new("Frame", gui)
-bg.Size = UDim2.new(1,0,1,0)
-bg.BackgroundColor3 = Color3.fromRGB(255,0,0)
-bg.BackgroundTransparency = 0.3
+-- ==============================
+-- 2) LocalScript otomatik
+-- ==============================
+if not StarterPlayerScripts:FindFirstChild("CezaLocal") then
+    local LS = Instance.new("LocalScript")
+    LS.Name = "CezaLocal"
+    LS.Parent = StarterPlayerScripts
 
--- Titreme efekti
-spawn(function()
-    while gui.Parent do
-        bg.Position = UDim2.new(0, math.random(-10,10), 0, math.random(-10,10))
-        bg.Rotation = math.random(-5,5)
-        task.wait(0.05)
-    end
+    LS.Source = [[
+local players = game:GetService("Players")
+local player = players.LocalPlayer
+local uis = game:GetService("UserInputService")
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "KorkuEkrani"
+Gui.Enabled = false
+Gui.Parent = player.PlayerGui
+
+local Frame = Instance.new("Frame", Gui)
+Frame.Size = UDim2.new(1,0,1,0)
+Frame.BackgroundColor3 = Color3.fromRGB(150,0,0)
+Frame.BackgroundTransparency = 0.2
+
+local Text = Instance.new("TextLabel", Frame)
+Text.Size = UDim2.new(1,0,0.3,0)
+Text.Position = UDim2.new(0,0,0.3,0)
+Text.BackgroundTransparency = 1
+Text.TextColor3 = Color3.fromRGB(255,255,255)
+Text.TextScaled = true
+Text.Text = "BİTTİN..."
+
+game.ReplicatedStorage:WaitForChild("CezaBaslat").OnClientEvent:Connect(function()
+	Gui.Enabled = true
+
+	task.spawn(function()
+		while Gui.Enabled do
+			game.Workspace.CurrentCamera.CFrame *= CFrame.Angles(0,0,math.random(-10,10)/500)
+			task.wait(0.02)
+		end
+	end)
+
+	local char = player.Character
+	if char then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then hum.WalkSpeed = 4 end
+	end
 end)
 
--- Ekranda X işaretleri oluşturma
-spawn(function()
-    while gui.Parent do
-        local X = Instance.new("TextLabel", gui)
-        X.Size = UDim2.new(0,100,0,100)
-        X.Position = UDim2.new(math.random(),0, math.random(),0)
-        X.Text = "✖"
-        X.TextColor3 = Color3.fromRGB(255,0,0)
-        X.TextScaled = true
-        X.BackgroundTransparency = 1
-        X.Rotation = math.random(-45,45)
+uis.InputBegan:Connect(function(key)
+	if key.KeyCode == Enum.KeyCode.P then
+		Gui.Enabled = false
+		local char = player.Character
+		if char then
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if hum then hum.WalkSpeed = 16 end
+		end
+	end
+end)
+    ]]
+    print("✔ LocalScript oluşturuldu: CezaLocal")
+end
 
-        game:GetService("TweenService"):Create(
-            X,
-            TweenInfo.new(1),
-            {TextTransparency = 1}
-        ):Play()
+-- ==============================
+-- 3) Otomatik Ceza Odası Oluşturma
+-- ==============================
+local CezaOda = Workspace:FindFirstChild("CezaOdasi")
+if not CezaOda then
+    CezaOda = Instance.new("Part")
+    CezaOda.Name = "CezaOdasi"
+    CezaOda.Anchored = true
+    CezaOda.Size = Vector3.new(30, 20, 30)
+    CezaOda.Position = Vector3.new(0, 10, 0)
+    CezaOda.Color = Color3.fromRGB(50,0,0)
+    CezaOda.Parent = Workspace
+    print("✔ Ceza odası otomatik oluşturuldu")
+end
 
-        game:GetService("Debris"):AddItem(X, 1.2)
-        task.wait(0.1)
+local CezaCFrame = CezaOda.CFrame
+local CezaListe = {}
+
+-- ==============================
+-- 4) Ceza başlatma ve teleport
+-- ==============================
+Remote.OnServerEvent:Connect(function(player)
+    CezaListe[player.UserId] = true
+
+    if player.Character then
+        player.Character:MoveTo(CezaCFrame.Position)
     end
+
+    Remote:FireClient(player)
 end)
 
--- Glitch yazılar
-spawn(function()
-    local messages = {
-        "SİSTEM HATASI",
-        "VİRÜS ALGILANDI",
-        "DOSYALAR BOZULUYOR...",
-        "GÜVENLİK DUVARI AŞILDI!",
-        "HATA KODU: X00024",
-        "KONTROL KAYBEDİLDİ"
-    }
-
-    while gui.Parent do
-        local txt = Instance.new("TextLabel", gui)
-        txt.Size = UDim2.new(1,0,0,60)
-        txt.Position = UDim2.new(0,0,0, math.random(0,600))
-        txt.Text = messages[math.random(1,#messages)]
-        txt.TextScaled = true
-        txt.BackgroundTransparency = 1
-        txt.TextColor3 = Color3.new(1,1,1)
-        txt.Rotation = math.random(-10,10)
-
-        game:GetService("TweenService"):Create(
-            txt,
-            TweenInfo.new(0.7),
-            {TextTransparency = 1}
-        ):Play()
-
-        game:GetService("Debris"):AddItem(txt, 0.8)
-        task.wait(0.2)
-    end
+-- ==============================
+-- 5) Ölünce tekrar Ceza Odasına ışınla
+-- ==============================
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(char)
+        task.wait(0.3)
+        if CezaListe[player.UserId] then
+            char:MoveTo(CezaCFrame.Position)
+        end
+    end)
 end)
 
--- Bozulma sesi
-local sound = Instance.new("Sound", player:WaitForChild("PlayerGui"))
-sound.SoundId = "rbxassetid://9125675529" -- glitch sesi
-sound.Volume = 5
-sound.Looped = true
-sound:Play()
-
--- 10 saniye sonra kapanır
-task.wait(10)
-gui:Destroy()
-sound:Destroy()
+print("✔ Tüm sistem hazır! Ceza Odası ve Korku Efekti otomatik.")
