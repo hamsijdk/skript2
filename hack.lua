@@ -1,138 +1,211 @@
--- [ FULL OTOMATİK KEY PANEL SİSTEMİ ] 
--- tek bir LocalScript ile GUI'yi ve sistemi tamamen kurar.
+---------------------------------------------------------
+--    KEY PANEL + ANA MENÜ + REMOTE TARAMA SİSTEMİ     --
+---------------------------------------------------------
 
+local player = game.Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
 
 ---------------------------------------------------------
--- GÜNLÜK KEY HESAPLAMA
+--   ANA GUI / KEY GUI  OLUŞTURMA
 ---------------------------------------------------------
-local BASE_KEY = 1173563
+local ScreenGui = Instance.new("ScreenGui", player.PlayerGui)
+ScreenGui.Name = "MasterGUI"
+ScreenGui.ResetOnSpawn = false
 
-local function GetDailyKey()
-    local now = DateTime.now():ToLocalTime()
-    local y, m, d = now.Year, now.Month, now.Day
-    local offset = (y * 365 + m * 31 + d) % 1000000
-    return tostring(BASE_KEY + offset)
+---------------------------------------------------------
+-- KEY FRAME
+---------------------------------------------------------
+local KeyFrame = Instance.new("Frame", ScreenGui)
+KeyFrame.Size = UDim2.new(0, 300, 0, 200)
+KeyFrame.Position = UDim2.new(0.5, -150, 0.4, -100)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+local KeyTitle = Instance.new("TextLabel", KeyFrame)
+KeyTitle.Size = UDim2.new(1, 0, 0, 40)
+KeyTitle.BackgroundTransparency = 1
+KeyTitle.Text = "Key Panel"
+KeyTitle.TextColor3 = Color3.new(1,1,1)
+KeyTitle.TextScaled = true
+
+local KeyBox = Instance.new("TextBox", KeyFrame)
+KeyBox.Size = UDim2.new(0.8, 0, 0, 35)
+KeyBox.Position = UDim2.new(0.1, 0, 0.35, 0)
+KeyBox.PlaceholderText = "Key Gir..."
+KeyBox.TextScaled = true
+
+local KeyEnter = Instance.new("TextButton", KeyFrame)
+KeyEnter.Size = UDim2.new(0.8, 0, 0, 35)
+KeyEnter.Position = UDim2.new(0.1, 0, 0.65, 0)
+KeyEnter.Text = "Giriş"
+KeyEnter.TextScaled = true
+
+---------------------------------------------------------
+-- GÜNLÜK KEY BURAYA
+---------------------------------------------------------
+local TodayKey = "1173563"
+local OwnerName = "efeakincipo"  -- sadece sana özel
+
+---------------------------------------------------------
+-- ANA MENÜ FRAME
+---------------------------------------------------------
+local MainMenu = Instance.new("Frame", ScreenGui)
+MainMenu.Size = UDim2.new(0, 350, 0, 350)
+MainMenu.Position = UDim2.new(0.5, -175, 0.5, -175)
+MainMenu.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainMenu.Visible = false
+
+local MenuTitle = Instance.new("TextLabel", MainMenu)
+MenuTitle.Size = UDim2.new(1, 0, 0, 50)
+MenuTitle.BackgroundTransparency = 1
+MenuTitle.Text = "Hile Menü"
+MenuTitle.TextColor3 = Color3.new(1,1,1)
+MenuTitle.TextScaled = true
+
+---------------------------------------------------------
+-- HİLE BUTONLARI (Oto Bitki, Oto Ekipman, Oto Saldırı)
+---------------------------------------------------------
+local function CreateButton(text, order)
+    local btn = Instance.new("TextButton", MainMenu)
+    btn.Size = UDim2.new(0.8, 0, 0, 40)
+    btn.Position = UDim2.new(0.1, 0, 0, 60 + (order * 50))
+    btn.Text = text
+    btn.TextScaled = true
+    btn.BackgroundColor3 = Color3.fromRGB(55,55,55)
+    return btn
 end
 
-local DAILY_KEY = GetDailyKey()
+local AutoPlantBtn = CreateButton("Otomatik Bitki (Aç/Kapa)", 1)
+local AutoEquipBtn = CreateButton("Otomatik Ekipman (Aç/Kapa)", 2)
+local AutoAttackBtn = CreateButton("Otomatik Saldırı (Aç/Kapa)", 3)
+
+local ScanBtn = CreateButton("RemoteEvent Tarama Paneli", 4)
 
 ---------------------------------------------------------
--- GUI OLUŞTURMA
+-- TARAYICI PANEL
 ---------------------------------------------------------
-local gui = Instance.new("ScreenGui")
-gui.Name = "KeySystem"
-gui.ResetOnSpawn = false
-gui.Parent = playerGui
+local ScanFrame = Instance.new("Frame", ScreenGui)
+ScanFrame.Size = UDim2.new(0, 400, 0, 350)
+ScanFrame.Position = UDim2.new(0.5, -200, 0.5, -175)
+ScanFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ScanFrame.Visible = false
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 180)
-frame.Position = UDim2.new(0.5, -175, 0.35, -90)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
-frame.Visible = false
-frame.Parent = gui
+local ScanTitle = Instance.new("TextLabel", ScanFrame)
+ScanTitle.Size = UDim2.new(1, 0, 0, 40)
+ScanTitle.BackgroundTransparency = 1
+ScanTitle.Text = "RemoteEvent Tarayıcı"
+ScanTitle.TextScaled = true
+ScanTitle.TextColor3 = Color3.new(1,1,1)
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "Key Panel"
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 22
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Parent = frame
+local Scroll = Instance.new("ScrollingFrame", ScanFrame)
+Scroll.Size = UDim2.new(1, 0, 1, -40)
+Scroll.Position = UDim2.new(0, 0, 0, 40)
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 2000)
+Scroll.BackgroundColor3 = Color3.fromRGB(50,50,50)
 
-local info = Instance.new("TextLabel")
-info.Size = UDim2.new(1, -20, 0, 28)
-info.Position = UDim2.new(0, 10, 0, 40)
-info.BackgroundTransparency = 1
-info.Text = "F ile aç/kapa"
-info.TextColor3 = Color3.fromRGB(200,200,200)
-info.TextXAlignment = Enum.TextXAlignment.Left
-info.Parent = frame
+local UIList = Instance.new("UIListLayout", Scroll)
+UIList.Padding = UDim.new(0, 6)
 
-local keyLabel = Instance.new("TextLabel")
-keyLabel.Size = UDim2.new(1, -20, 0, 28)
-keyLabel.Position = UDim2.new(0, 10, 0, 70)
-keyLabel.BackgroundTransparency = 1
-keyLabel.Text = "Bugünün Key'i: "..DAILY_KEY
-keyLabel.TextColor3 = Color3.fromRGB(255,220,80)
-keyLabel.TextXAlignment = Enum.TextXAlignment.Left
-keyLabel.Parent = frame
-
-local input = Instance.new("TextBox")
-input.Size = UDim2.new(1, -140, 0, 32)
-input.Position = UDim2.new(0, 10, 0, 105)
-input.PlaceholderText = "Key gir..."
-input.BackgroundColor3 = Color3.fromRGB(255,255,255)
-input.Text = ""
-input.Parent = frame
-
-local giris = Instance.new("TextButton")
-giris.Size = UDim2.new(0, 60, 0, 32)
-giris.Position = UDim2.new(1, -70, 0, 105)
-giris.Text = "Giriş"
-giris.Parent = frame
-
-local keyal = Instance.new("TextButton")
-keyal.Size = UDim2.new(0, 60, 0, 32)
-keyal.Position = UDim2.new(1, -140, 0, 105)
-keyal.Text = "Key Al"
-keyal.Parent = frame
-
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -20, 0, 28)
-status.Position = UDim2.new(0, 10, 0, 140)
-status.BackgroundTransparency = 1
-status.Text = ""
-status.TextColor3 = Color3.fromRGB(180,180,180)
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.Parent = frame
-
+local function AddLine(text)
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -10, 0, 30)
+    Label.BackgroundTransparency = 1
+    Label.TextColor3 = Color3.new(1,1,1)
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Text = text
+    Label.TextScaled = true
+    Label.Parent = Scroll
+end
 
 ---------------------------------------------------------
--- F tuşu ile aç/kapa
+-- TARAYICI ÇALIŞTIRMA FONKSİYONU
 ---------------------------------------------------------
-local visible = false
-UIS.InputBegan:Connect(function(i, g)
-    if g then return end
-    if i.KeyCode == Enum.KeyCode.F then
-        visible = not visible
-        frame.Visible = visible
+local function Scan(folder)
+    for _, obj in ipairs(folder:GetChildren()) do
+        if obj:IsA("RemoteEvent") then
+            AddLine("RemoteEvent: "..obj.Name)
+        elseif obj:IsA("RemoteFunction") then
+            AddLine("RemoteFunction: "..obj.Name)
+        elseif obj:IsA("Folder") or obj:IsA("Model") then
+            Scan(obj)
+        end
     end
-end)
+end
 
 ---------------------------------------------------------
--- Giriş butonu
+-- TÜM TARAYICI
 ---------------------------------------------------------
-giris.MouseButton1Click:Connect(function()
-    local entered = input.Text
-    if entered == "" then
-        status.Text = "Key gir!"
+local function RunScanner()
+    Scroll:ClearAllChildren()
+    AddLine("Tarama Başladı...")
+    task.wait(0.5)
+
+    Scan(game.ReplicatedStorage)
+    Scan(game.Workspace)
+    Scan(game.StarterPlayer)
+
+    AddLine("----- TARAMA BİTTİ -----")
+end
+
+---------------------------------------------------------
+-- KEY GİRİŞ KONTROL
+---------------------------------------------------------
+KeyEnter.MouseButton1Click:Connect(function()
+    if player.Name ~= OwnerName then
+        KeyBox.Text = "Bu key sana ait değil!"
         return
     end
-
-    if tostring(entered) == DAILY_KEY then
-        status.Text = "Giriş Başarılı!"
+    
+    if KeyBox.Text == TodayKey then
+        KeyFrame.Visible = false
+        MainMenu.Visible = true
     else
-        status.Text = "Yanlış Key!"
+        KeyBox.Text = "Yanlış Key!"
     end
 end)
 
 ---------------------------------------------------------
--- Key Al butonu (şimdilik boş)
+-- F ile GUI Aç/Kapa
 ---------------------------------------------------------
-keyal.MouseButton1Click:Connect(function()
-    status.Text = "Key Al şu an çalışmıyor."
+local guiEnabled = true
+UIS.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        guiEnabled = not guiEnabled
+        ScreenGui.Enabled = guiEnabled
+    end
 end)
 
 ---------------------------------------------------------
--- Eğer oyuncu adın efeakincipo ise sana otomatik key mesajı
+-- TARAYICI BUTONU
 ---------------------------------------------------------
-if player.Name:lower() == "efeakincipo" then
-    status.Text = "Senin Günlük Key'in: "..DAILY_KEY
-end
+ScanBtn.MouseButton1Click:Connect(function()
+    ScanFrame.Visible = true
+    RunScanner()
+end)
+
+---------------------------------------------------------
+-- OTOMATİK HİLE TOGGLE (şimdilik boş)
+---------------------------------------------------------
+local AutoPlant = false
+local AutoEquip = false
+local AutoAttack = false
+
+AutoPlantBtn.MouseButton1Click:Connect(function()
+    AutoPlant = not AutoPlant
+    AutoPlantBtn.Text = "Oto Bitki: " .. (AutoPlant and "Açık" or "Kapalı")
+end)
+
+AutoEquipBtn.MouseButton1Click:Connect(function()
+    AutoEquip = not AutoEquip
+    AutoEquipBtn.Text = "Oto Ekipman: " .. (AutoEquip and "Açık" or "Kapalı")
+end)
+
+AutoAttackBtn.MouseButton1Click:Connect(function()
+    AutoAttack = not AutoAttack
+    AutoAttackBtn.Text = "Oto Saldırı: " .. (AutoAttack and "Açık" or "Kapalı")
+end)
+
+---------------------------------------------------------
+-- EVENT BAĞLAMALARI (Sen RemoteEvent isimlerini verince dolduracağız)
+---------------------------------------------------------
+
