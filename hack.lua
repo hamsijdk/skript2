@@ -3,7 +3,6 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
@@ -12,11 +11,11 @@ local mouse = player:GetMouse()
 local settings = {
     enabled = false,
     aimKey = Enum.KeyCode.F,
-    maxDistance = 50,
-    smoothness = 0.3,
+    maxDistance = 100, -- 100 stud mesafe
+    smoothness = 0.2,  -- Daha yumuşak aim
     autoShoot = false,
     aimAtHead = true,
-    selectedTarget = nil -- Seçilen hedef
+    selectedTarget = nil
 }
 
 -- Değişkenler
@@ -24,6 +23,7 @@ local currentTarget = nil
 local isAiming = false
 local connection
 local playerButtons = {}
+local forceLock = false -- Zorla kilit modu
 
 -- GUI Oluşturma
 local screenGui = Instance.new("ScreenGui")
@@ -31,19 +31,20 @@ screenGui.Name = "AimBotGUI"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Size = UDim2.new(0, 320, 0, 450)
 mainFrame.Position = UDim2.new(0, 10, 0, 10)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BorderSizePixel = 0
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 1
+mainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
 -- Başlık
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
+title.Size = UDim2.new(1, 0, 0, 35)
 title.Position = UDim2.new(0, 0, 0, 0)
-title.Text = "🎯 GELİŞMİŞ AIM BOT"
-title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.Text = "🎯 GELİŞMİŞ AIM BOT v2"
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 14
 title.Font = Enum.Font.GothamBold
@@ -51,9 +52,9 @@ title.Parent = mainFrame
 
 -- Sekmeler
 local tabButtonsFrame = Instance.new("Frame")
-tabButtonsFrame.Size = UDim2.new(1, 0, 0, 30)
-tabButtonsFrame.Position = UDim2.new(0, 0, 0, 30)
-tabButtonsFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+tabButtonsFrame.Size = UDim2.new(1, 0, 0, 35)
+tabButtonsFrame.Position = UDim2.new(0, 0, 0, 35)
+tabButtonsFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 tabButtonsFrame.BorderSizePixel = 0
 tabButtonsFrame.Parent = mainFrame
 
@@ -61,7 +62,7 @@ local aimTabButton = Instance.new("TextButton")
 aimTabButton.Size = UDim2.new(0.5, 0, 1, 0)
 aimTabButton.Position = UDim2.new(0, 0, 0, 0)
 aimTabButton.Text = "AIM AYARLARI"
-aimTabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+aimTabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 aimTabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 aimTabButton.TextSize = 11
 aimTabButton.Font = Enum.Font.Gotham
@@ -70,8 +71,8 @@ aimTabButton.Parent = tabButtonsFrame
 local playersTabButton = Instance.new("TextButton")
 playersTabButton.Size = UDim2.new(0.5, 0, 1, 0)
 playersTabButton.Position = UDim2.new(0.5, 0, 0, 0)
-playersTabButton.Text = "OYUNCU LİSTESİ"
-playersTabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+playersTabButton.Text = "🎯 OYUNCU LİSTESİ"
+playersTabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 playersTabButton.TextColor3 = Color3.fromRGB(200, 200, 200)
 playersTabButton.TextSize = 11
 playersTabButton.Font = Enum.Font.Gotham
@@ -79,88 +80,99 @@ playersTabButton.Parent = tabButtonsFrame
 
 -- AIM AYARLARI Sekmesi
 local aimTab = Instance.new("Frame")
-aimTab.Size = UDim2.new(1, 0, 1, -60)
-aimTab.Position = UDim2.new(0, 0, 0, 60)
+aimTab.Size = UDim2.new(1, 0, 1, -70)
+aimTab.Position = UDim2.new(0, 0, 0, 70)
 aimTab.BackgroundTransparency = 1
 aimTab.Visible = true
 aimTab.Parent = mainFrame
 
 -- OYUNCU LİSTESİ Sekmesi
 local playersTab = Instance.new("Frame")
-playersTab.Size = UDim2.new(1, 0, 1, -60)
-playersTab.Position = UDim2.new(0, 0, 0, 60)
+playersTab.Size = UDim2.new(1, 0, 1, -70)
+playersTab.Position = UDim2.new(0, 0, 0, 70)
 playersTab.BackgroundTransparency = 1
 playersTab.Visible = false
 playersTab.Parent = mainFrame
 
 -- AIM AYARLARI İçeriği
 local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0.9, 0, 0, 35)
+toggleButton.Size = UDim2.new(0.9, 0, 0, 40)
 toggleButton.Position = UDim2.new(0.05, 0, 0, 10)
-toggleButton.Text = "AIMBOT: KAPALI"
-toggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+toggleButton.Text = "🔴 AIMBOT: KAPALI"
+toggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.TextSize = 12
-toggleButton.Font = Enum.Font.Gotham
+toggleButton.TextSize = 13
+toggleButton.Font = Enum.Font.GothamBold
 toggleButton.Parent = aimTab
 
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(0.9, 0, 0, 25)
-statusLabel.Position = UDim2.new(0.05, 0, 0, 55)
-statusLabel.Text = "Durum: Pasif"
-statusLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+statusLabel.Size = UDim2.new(0.9, 0, 0, 30)
+statusLabel.Position = UDim2.new(0.05, 0, 0, 60)
+statusLabel.Text = "🔴 Durum: Pasif"
+statusLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-statusLabel.TextSize = 11
+statusLabel.TextSize = 12
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.Parent = aimTab
 
 local targetLabel = Instance.new("TextLabel")
-targetLabel.Size = UDim2.new(0.9, 0, 0, 25)
-targetLabel.Position = UDim2.new(0.05, 0, 0, 85)
-targetLabel.Text = "Hedef: OTOMATİK"
-targetLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+targetLabel.Size = UDim2.new(0.9, 0, 0, 30)
+targetLabel.Position = UDim2.new(0.05, 0, 0, 95)
+targetLabel.Text = "🎯 Hedef: OTOMATİK"
+targetLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 targetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-targetLabel.TextSize = 11
+targetLabel.TextSize = 12
 targetLabel.Font = Enum.Font.Gotham
 targetLabel.Parent = aimTab
 
 local distanceLabel = Instance.new("TextLabel")
-distanceLabel.Size = UDim2.new(0.9, 0, 0, 25)
-distanceLabel.Position = UDim2.new(0.05, 0, 0, 115)
-distanceLabel.Text = "Mesafe: -"
-distanceLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+distanceLabel.Size = UDim2.new(0.9, 0, 0, 30)
+distanceLabel.Position = UDim2.new(0.05, 0, 0, 130)
+distanceLabel.Text = "📏 Mesafe: -"
+distanceLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 distanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-distanceLabel.TextSize = 11
+distanceLabel.TextSize = 12
 distanceLabel.Font = Enum.Font.Gotham
 distanceLabel.Parent = aimTab
 
 -- Ayarlar butonları
 local autoTargetButton = Instance.new("TextButton")
-autoTargetButton.Size = UDim2.new(0.9, 0, 0, 30)
-autoTargetButton.Position = UDim2.new(0.05, 0, 0, 150)
-autoTargetButton.Text = "OTO HEDEF: AÇIK"
+autoTargetButton.Size = UDim2.new(0.9, 0, 0, 35)
+autoTargetButton.Position = UDim2.new(0.05, 0, 0, 170)
+autoTargetButton.Text = "🔄 OTO HEDEF: AÇIK"
 autoTargetButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
 autoTargetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoTargetButton.TextSize = 11
+autoTargetButton.TextSize = 12
 autoTargetButton.Font = Enum.Font.Gotham
 autoTargetButton.Parent = aimTab
 
-local clearTargetButton = Instance.new("TextButton")
-clearTargetButton.Size = UDim2.new(0.9, 0, 0, 30)
-clearTargetButton.Position = UDim2.new(0.05, 0, 0, 185)
-clearTargetButton.Text = "HEDEFİ TEMİZLE"
-clearTargetButton.BackgroundColor3 = Color3.fromRGB(100, 50, 0)
-clearTargetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-clearTargetButton.TextSize = 11
-clearTargetButton.Font = Enum.Font.Gotham
-clearTargetButton.Parent = aimTab
+local forceLockButton = Instance.new("TextButton")
+forceLockButton.Size = UDim2.new(0.9, 0, 0, 35)
+forceLockButton.Position = UDim2.new(0.05, 0, 0, 210)
+forceLockButton.Text = "🔒 ZORLA KİLİT: KAPALI"
+forceLockButton.BackgroundColor3 = Color3.fromRGB(100, 50, 0)
+forceLockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+forceLockButton.TextSize = 12
+forceLockButton.Font = Enum.Font.Gotham
+forceLockButton.Parent = aimTab
+
+local infoLabel = Instance.new("TextLabel")
+infoLabel.Size = UDim2.new(0.9, 0, 0, 50)
+infoLabel.Position = UDim2.new(0.05, 0, 1, -120)
+infoLabel.Text = "🎯 F tuşu: Aim Aç/Kapa\n🖱️ Sol Tık: Hedefe Kitlen"
+infoLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+infoLabel.TextSize = 10
+infoLabel.TextWrapped = true
+infoLabel.Font = Enum.Font.Gotham
+infoLabel.Parent = aimTab
 
 -- Kapatma Butonu
 local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0.4, 0, 0, 25)
-closeButton.Position = UDim2.new(0.55, 0, 1, -35)
-closeButton.Text = "Kapat"
-closeButton.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+closeButton.Size = UDim2.new(0.4, 0, 0, 30)
+closeButton.Position = UDim2.new(0.55, 0, 1, -80)
+closeButton.Text = "❌ Kapat"
+closeButton.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
 closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeButton.TextSize = 11
 closeButton.Font = Enum.Font.Gotham
@@ -168,11 +180,12 @@ closeButton.Parent = aimTab
 
 -- OYUNCU LİSTESİ İçeriği
 local playersScroll = Instance.new("ScrollingFrame")
-playersScroll.Size = UDim2.new(0.95, 0, 0.85, 0)
-playersScroll.Position = UDim2.new(0.025, 0, 0.05, 0)
-playersScroll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+playersScroll.Size = UDim2.new(0.95, 0, 0.9, 0)
+playersScroll.Position = UDim2.new(0.025, 0, 0.02, 0)
+playersScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 playersScroll.BorderSizePixel = 0
 playersScroll.ScrollBarThickness = 6
+playersScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
 playersScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 playersScroll.Parent = playersTab
 
@@ -203,64 +216,58 @@ local function updatePlayersList()
             playerCount = playerCount + 1
             
             local playerButton = Instance.new("TextButton")
-            playerButton.Size = UDim2.new(0.95, 0, 0, 40)
+            playerButton.Size = UDim2.new(0.95, 0, 0, 45)
             playerButton.Position = UDim2.new(0.025, 0, 0, yOffset)
             playerButton.Text = otherPlayer.Name
-            playerButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            playerButton.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
             playerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            playerButton.TextSize = 11
+            playerButton.TextSize = 12
             playerButton.Font = Enum.Font.Gotham
             playerButton.Parent = playersScroll
             
             -- Seçili hedefi işaretle
             if settings.selectedTarget == otherPlayer then
-                playerButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+                playerButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
                 playerButton.Text = "🎯 " .. otherPlayer.Name
             end
             
             playerButton.MouseButton1Click:Connect(function()
-                if settings.selectedTarget == otherPlayer then
-                    -- Aynı oyuncuya tıklandı, hedefi kaldır
-                    settings.selectedTarget = nil
-                    playerButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-                    playerButton.Text = otherPlayer.Name
-                    targetLabel.Text = "Hedef: OTOMATİK"
-                else
-                    -- Yeni hedef seç
-                    settings.selectedTarget = otherPlayer
-                    playerButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-                    playerButton.Text = "🎯 " .. otherPlayer.Name
-                    targetLabel.Text = "Hedef: " .. otherPlayer.Name
-                    
-                    -- Diğer butonları sıfırla
-                    for _, btn in pairs(playerButtons) do
-                        if btn ~= playerButton then
-                            local playerName = string.gsub(btn.Text, "🎯 ", "")
-                            btn.Text = playerName
-                            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-                        end
+                settings.selectedTarget = otherPlayer
+                targetLabel.Text = "🎯 Hedef: " .. otherPlayer.Name
+                
+                -- Tüm butonları güncelle
+                for _, btn in pairs(playerButtons) do
+                    local btnText = btn.Text
+                    if string.find(btnText, "🎯") then
+                        btn.Text = string.gsub(btnText, "🎯 ", "")
+                        btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
                     end
+                end
+                
+                -- Seçili butonu güncelle
+                playerButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+                playerButton.Text = "🎯 " .. otherPlayer.Name
+                
+                -- Hemen kilitle
+                if settings.enabled then
+                    currentTarget = otherPlayer
+                    forceLock = true
                 end
             end)
             
             table.insert(playerButtons, playerButton)
-            yOffset = yOffset + 45
+            yOffset = yOffset + 50
         end
     end
     
     playersScroll.CanvasSize = UDim2.new(0, 0, 0, yOffset)
-    
-    if playerCount == 0 then
-        noPlayersLabel.Visible = true
-    else
-        noPlayersLabel.Visible = false
-    end
+    noPlayersLabel.Visible = (playerCount == 0)
 end
 
--- En Yakın Oyuncuyu Bulma
-local function findClosestPlayer()
+-- Hedef Bulma
+local function findTarget()
     if settings.selectedTarget then
-        -- Manuel hedef seçilmişse
+        -- Manuel hedef
         local targetPlayer = settings.selectedTarget
         if targetPlayer and targetPlayer.Character then
             local character = targetPlayer.Character
@@ -275,9 +282,8 @@ local function findClosestPlayer()
                 end
             end
         end
-        return nil, 0
     else
-        -- Otomatik hedef bulma
+        -- Otomatik hedef
         local closestPlayer = nil
         local closestDistance = settings.maxDistance
         local localCharacter = player.Character
@@ -305,9 +311,10 @@ local function findClosestPlayer()
         
         return closestPlayer, closestDistance
     end
+    return nil, 0
 end
 
--- Aim Fonksiyonu
+-- Gelişmiş Aim Fonksiyonu
 local function aimAtTarget(target)
     if not target or not target.Character then return false end
     
@@ -319,12 +326,9 @@ local function aimAtTarget(target)
     
     if screenPoint.Z > 0 then
         local targetX, targetY = screenPoint.X, screenPoint.Y
-        local currentX, currentY = mouse.X, mouse.Y
         
-        local newX = currentX + (targetX - currentX) * settings.smoothness
-        local newY = currentY + (targetY - currentY) * settings.smoothness
-        
-        mousemoverel(newX - currentX, newY - currentY)
+        -- Direk kilit (smooth ile)
+        mousemoverel(targetX - mouse.X, targetY - mouse.Y)
         return true
     end
     return false
@@ -337,25 +341,33 @@ local function startAiming()
     connection = RunService.Heartbeat:Connect(function()
         if not settings.enabled then return end
         
-        local target, distance = findClosestPlayer()
-        currentTarget = target
+        local target, distance = findTarget()
         
         if target then
-            statusLabel.Text = "Durum: HEDEF KİTLENDİ"
-            statusLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-            distanceLabel.Text = "Mesafe: " .. math.floor(distance) .. "m"
+            currentTarget = target
             
-            if isAiming then
+            -- Sürekli kilit (forceLock açıksa veya F basılıysa)
+            if forceLock or isAiming then
                 local aimSuccess = aimAtTarget(target)
                 
-                if aimSuccess and settings.autoShoot then
-                    mouse1click()
+                if aimSuccess then
+                    statusLabel.Text = "🟢 Durum: KİLİTLİ - " .. target.Name
+                    statusLabel.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+                    distanceLabel.Text = "📏 Mesafe: " .. math.floor(distance) .. "m"
+                    
+                    if settings.autoShoot then
+                        mouse1click()
+                    end
                 end
+            else
+                statusLabel.Text = "🟡 Durum: HEDEF BULUNDU"
+                statusLabel.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+                distanceLabel.Text = "📏 Mesafe: " .. math.floor(distance) .. "m"
             end
         else
-            statusLabel.Text = "Durum: HEDEF ARANIYOR"
-            statusLabel.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
-            distanceLabel.Text = "Mesafe: -"
+            statusLabel.Text = "🔴 Durum: HEDEF YOK"
+            statusLabel.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+            distanceLabel.Text = "📏 Mesafe: -"
         end
     end)
 end
@@ -364,15 +376,15 @@ end
 aimTabButton.MouseButton1Click:Connect(function()
     aimTab.Visible = true
     playersTab.Visible = false
-    aimTabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    playersTabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    aimTabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    playersTabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 end)
 
 playersTabButton.MouseButton1Click:Connect(function()
     aimTab.Visible = false
     playersTab.Visible = true
-    playersTabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    aimTabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    playersTabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    aimTabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     updatePlayersList()
 end)
 
@@ -381,15 +393,18 @@ toggleButton.MouseButton1Click:Connect(function()
     settings.enabled = not settings.enabled
     
     if settings.enabled then
-        toggleButton.Text = "AIMBOT: AÇIK"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        toggleButton.Text = "🟢 AIMBOT: AÇIK"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
         startAiming()
     else
-        toggleButton.Text = "AIMBOT: KAPALI"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-        statusLabel.Text = "Durum: Pasif"
-        statusLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        distanceLabel.Text = "Mesafe: -"
+        toggleButton.Text = "🔴 AIMBOT: KAPALI"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        statusLabel.Text = "🔴 Durum: Pasif"
+        statusLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        distanceLabel.Text = "📏 Mesafe: -"
+        forceLock = false
+        forceLockButton.Text = "🔒 ZORLA KİLİT: KAPALI"
+        forceLockButton.BackgroundColor3 = Color3.fromRGB(100, 50, 0)
         if connection then
             connection:Disconnect()
         end
@@ -398,14 +413,24 @@ end)
 
 autoTargetButton.MouseButton1Click:Connect(function()
     settings.selectedTarget = nil
-    targetLabel.Text = "Hedef: OTOMATİK"
+    targetLabel.Text = "🎯 Hedef: OTOMATİK"
+    forceLock = false
+    forceLockButton.Text = "🔒 ZORLA KİLİT: KAPALI"
+    forceLockButton.BackgroundColor3 = Color3.fromRGB(100, 50, 0)
     updatePlayersList()
 end)
 
-clearTargetButton.MouseButton1Click:Connect(function()
-    settings.selectedTarget = nil
-    targetLabel.Text = "Hedef: OTOMATİK"
-    updatePlayersList()
+forceLockButton.MouseButton1Click:Connect(function()
+    if settings.enabled and settings.selectedTarget then
+        forceLock = not forceLock
+        if forceLock then
+            forceLockButton.Text = "🔒 ZORLA KİLİT: AÇIK"
+            forceLockButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+        else
+            forceLockButton.Text = "🔒 ZORLA KİLİT: KAPALI"
+            forceLockButton.BackgroundColor3 = Color3.fromRGB(100, 50, 0)
+        end
+    end
 end)
 
 closeButton.MouseButton1Click:Connect(function()
@@ -415,24 +440,28 @@ closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
 end)
 
--- F Tuşu ile Aim Aç/Kapa
+-- F Tuşu ile Aim
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
+    if input.KeyCode == settings.aimKey and settings.enabled then
+        isAiming = true
+        statusLabel.Text = "🟢 Durum: F TUŞU BASILI"
+        statusLabel.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
     if input.KeyCode == settings.aimKey then
-        isAiming = not isAiming
-        
-        if isAiming then
-            statusLabel.Text = "Durum: F TUŞU BASILI"
-            statusLabel.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-        else
-            statusLabel.Text = "Durum: HEDEF ARANIYOR"
+        isAiming = false
+        if settings.enabled and currentTarget then
+            statusLabel.Text = "🟡 Durum: HEDEF BULUNDU"
             statusLabel.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
         end
     end
 end)
 
--- Fare Tıklaması ile Aim
+-- Fare Tıklaması ile Hemen Kilitle
 mouse.Button1Down:Connect(function()
     if settings.enabled and currentTarget then
         aimAtTarget(currentTarget)
@@ -452,10 +481,12 @@ mainFrame.InputBegan:Connect(function(input)
         dragging = true
         dragStart = input.Position
         startPos = mainFrame.Position
+        mainFrame.BorderColor3 = Color3.fromRGB(100, 100, 255)
         
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
+                mainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
             end
         end)
     end
@@ -476,4 +507,5 @@ end)
 
 -- İlk güncelleme
 updatePlayersList()
-print("Gelişmiş Aim Bot Sistemi Yüklendi! F tuşu ile aim yapabilirsiniz.")
+print("🎯 Gelişmiş Aim Bot v2 Yüklendi!")
+print("📝 Özellikler: 100m mesafe, sabit kilit, oyuncu seçimi")
