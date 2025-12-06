@@ -1,979 +1,597 @@
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 
--- Debug
-local DEBUG = true
-local function log(...)
-    if DEBUG then
-        print("[ÇARPIŞMASIZ-TAKIP]", ...)
-    end
-end
-
--- Variables
+-- Oyuncu değişkenleri
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- Settings
-local settings = {
-    followDistance = 1.5,
-    followHeight = 1.8,
-    sideOffset = 0.3,
-    shakeIntensity = 0.3,
-    shakeSpeed = 15,
-    updateRate = 0.01,
-    smoothness = 0.3,
-    prediction = 0.05,
-    lockMode = true,
-    groundOffset = 0.5,
-    useRaycast = true,
-    useShake = true,
-    collisionCheck = true,       -- Çarpışma kontrolü
-    collisionRadius = 3.0,       -- Çarpışma kontrol mesafesi
-    autoAdjustPosition = true,   -- Otomatik pozisyon ayarı
-    avoidPlayers = true          -- Diğer oyunculardan kaçın
-}
+-- Ayarlar
+local FOLLOW_DISTANCE = 1.5  -- Çok yakın (1.5m)
+local FOLLOW_HEIGHT = 1      -- Minimum yükseklik
+local SMOOTHNESS = 0.25      -- Daha sert takip (titremeyi önlemek için)
+local SIDE_OFFSET = 0.3      -- Yan pozisyon (görüş için)
+local JUMP_DELAY = 0.1       -- Zıplama gecikmesi
+local RESPONSE_TIME = 0.05   -- Tepki süresi (saniye)
 
--- State
+-- Titreme için ayarlar
+local TITREME_FREQUENCY = 20 -- Titreme frekansı (Hz)
+local TITREME_AMPLITUDE = 0.1 -- Titreme genliği
+local TITREME_OFFSET = Vector3.new(0, 0.1, 0) -- Titreme offset
+
+-- GUI'yi oluştur
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportGUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 300, 0, 350)
+mainFrame.Position = UDim2.new(0, 10, 0, 10)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 1
+mainFrame.BorderColor3 = Color3.fromRGB(60, 60, 60)
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = mainFrame
+
+-- Başlık
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Text = "🎯 YAKIN TAKİP SİSTEMİ 🎯"
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+title.TextColor3 = Color3.fromRGB(0, 200, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 8)
+titleCorner.Parent = title
+
+-- Oyuncu listesi
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Name = "ScrollFrame"
+scrollFrame.Size = UDim2.new(1, -15, 0, 160)
+scrollFrame.Position = UDim2.new(0, 8, 0, 45)
+scrollFrame.BackgroundTransparency = 0.9
+scrollFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.Parent = mainFrame
+
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Parent = scrollFrame
+uiListLayout.Padding = UDim.new(0, 3)
+
+-- Kontrol Paneli
+local controlFrame = Instance.new("Frame")
+controlFrame.Name = "ControlFrame"
+controlFrame.Size = UDim2.new(1, -15, 0, 150)
+controlFrame.Position = UDim2.new(0, 8, 0, 215)
+controlFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+controlFrame.Parent = mainFrame
+
+local controlCorner = Instance.new("UICorner")
+controlCorner.CornerRadius = UDim.new(0, 6)
+controlCorner.Parent = controlFrame
+
+-- Takip Durumu
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Text = "🔴 TAKİP KAPALI"
+statusLabel.Size = UDim2.new(1, -10, 0, 25)
+statusLabel.Position = UDim2.new(0, 5, 0, 5)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextSize = 12
+statusLabel.Parent = controlFrame
+
+-- Mesafe Ayarı
+local distanceLabel = Instance.new("TextLabel")
+distanceLabel.Name = "DistanceLabel"
+distanceLabel.Text = "📏 MESAFE: 1.5m"
+distanceLabel.Size = UDim2.new(0.6, 0, 0, 20)
+distanceLabel.Position = UDim2.new(0, 5, 0, 35)
+distanceLabel.BackgroundTransparency = 1
+distanceLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+distanceLabel.Font = Enum.Font.Gotham
+distanceLabel.TextSize = 11
+distanceLabel.TextXAlignment = Enum.TextXAlignment.Left
+distanceLabel.Parent = controlFrame
+
+-- Titreme Ayarı
+local shakeLabel = Instance.new("TextLabel")
+shakeLabel.Name = "ShakeLabel"
+shakeLabel.Text = "🌀 TİTREME: 0.1"
+shakeLabel.Size = UDim2.new(0.6, 0, 0, 20)
+shakeLabel.Position = UDim2.new(0, 5, 0, 60)
+shakeLabel.BackgroundTransparency = 1
+shakeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+shakeLabel.Font = Enum.Font.Gotham
+shakeLabel.TextSize = 11
+shakeLabel.TextXAlignment = Enum.TextXAlignment.Left
+shakeLabel.Parent = controlFrame
+
+-- Butonlar
+local buttonsFrame = Instance.new("Frame")
+buttonsFrame.Name = "ButtonsFrame"
+buttonsFrame.Size = UDim2.new(1, -10, 0, 40)
+buttonsFrame.Position = UDim2.new(0, 5, 0, 90)
+buttonsFrame.BackgroundTransparency = 1
+buttonsFrame.Parent = controlFrame
+
+local startButton = Instance.new("TextButton")
+startButton.Name = "StartButton"
+startButton.Text = "🚀 BAŞLAT"
+startButton.Size = UDim2.new(0.48, 0, 1, 0)
+startButton.Position = UDim2.new(0, 0, 0, 0)
+startButton.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+startButton.Font = Enum.Font.GothamBold
+startButton.TextSize = 12
+startButton.Parent = buttonsFrame
+
+local stopButton = Instance.new("TextButton")
+stopButton.Name = "StopButton"
+stopButton.Text = "⛔ DURDUR"
+stopButton.Size = UDim2.new(0.48, 0, 1, 0)
+stopButton.Position = UDim2.new(0.52, 0, 0, 0)
+stopButton.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopButton.Font = Enum.Font.GothamBold
+stopButton.TextSize = 12
+stopButton.Visible = false
+stopButton.Parent = buttonsFrame
+
+-- Buton köşeleri
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 6)
+buttonCorner.Parent = startButton
+buttonCorner:Clone().Parent = stopButton
+
+-- Kapatma butonu
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Text = "✕"
+closeButton.Size = UDim2.new(0, 22, 0, 22)
+closeButton.Position = UDim2.new(1, -27, 0, 6)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 12
+closeButton.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 4)
+closeCorner.Parent = closeButton
+
+-- Değişkenler
 local selectedPlayer = nil
 local isTracking = false
-local trackingThread = nil
-local timeOffset = 0
-local lastTargetPos = Vector3.new(0, 0, 0)
-local targetVelocity = Vector3.new(0, 0, 0)
-local lastUpdate = tick()
-local collisionParts = {}
+local trackingConnection = nil
+local currentDistance = FOLLOW_DISTANCE
+local currentShake = TITREME_AMPLITUDE
+local isTeleporting = false
+local time = 0
+local lastPosition = nil
+local velocity = Vector3.zero
 
--- ============================================
--- ÇARPIŞMA ÖNLEME SİSTEMİ
--- ============================================
-local function setupCollision()
-    -- Karakterin çarpışmasını kapat
-    if character then
-        for _, part in ipairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-                part.CollisionGroup = "NoCollision"
-                table.insert(collisionParts, part)
-            end
+-- Titreme efekti fonksiyonu
+local function getShakeOffset(t)
+    local x = math.sin(t * TITREME_FREQUENCY) * currentShake
+    local y = math.cos(t * TITREME_FREQUENCY * 1.1) * currentShake
+    local z = math.sin(t * TITREME_FREQUENCY * 0.9) * currentShake
+    return Vector3.new(x, y, z) + TITREME_OFFSET
+end
+
+-- Hedefin hızını ve hareket yönünü analiz et
+local function analyzeTargetMovement(targetRoot, deltaTime)
+    if not targetRoot then return Vector3.zero end
+    
+    local currentPos = targetRoot.Position
+    
+    if lastPosition then
+        -- Hızı hesapla
+        velocity = (currentPos - lastPosition) / deltaTime
+        
+        -- Çok yüksek hızları sınırla
+        local speed = velocity.Magnitude
+        if speed > 50 then
+            velocity = velocity.Unit * 50
         end
     end
     
-    -- Humanoid'ın çarpışmasını ayarla
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.AutoRotate = false
-    end
-    
-    log("Çarpışma ayarları yapıldı")
+    lastPosition = currentPos
+    return velocity
 end
 
-local function restoreCollision()
-    -- Çarpışmayı geri aç
-    for _, part in ipairs(collisionParts) do
-        if part then
-            part.CanCollide = true
-            part.CollisionGroup = "Default"
-        end
-    end
-    collisionParts = {}
+-- Tepki süresi ile tahmin edilen pozisyon
+local function getPredictedPosition(targetRoot, deltaTime)
+    if not targetRoot then return nil end
     
-    log("Çarpışma geri açıldı")
+    local currentPos = targetRoot.Position
+    local vel = analyzeTargetMovement(targetRoot, deltaTime)
+    
+    -- Tepki süresi ile tahmin yap
+    return currentPos + (vel * RESPONSE_TIME)
 end
 
-local function checkPlayerCollision(position)
-    if not settings.avoidPlayers then
-        return false, nil
-    end
+-- Saniyede işlem yapan hızlı takip
+local function rapidFollow(targetCharacter, deltaTime)
+    if not targetCharacter or not isTracking then return end
     
-    for _, otherPlayer in ipairs(Players:GetPlayers()) do
-        if otherPlayer ~= player and otherPlayer ~= selectedPlayer then
-            local otherCharacter = otherPlayer.Character
-            if otherCharacter then
-                local otherRoot = otherCharacter:FindFirstChild("HumanoidRootPart")
-                if otherRoot then
-                    local distance = (position - otherRoot.Position).Magnitude
-                    if distance < settings.collisionRadius then
-                        return true, otherPlayer
-                    end
-                end
-            end
-        end
-    end
+    local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+    if not targetRoot or not humanoidRootPart then return end
     
-    return false, nil
-end
-
-local function findSafePosition(targetPos, targetCF, avoidPositions)
+    -- Hedefin hareketini tahmin et
+    local predictedTargetPos = getPredictedPosition(targetRoot, deltaTime) or targetRoot.Position
+    
+    -- Hedefin yön vektörleri
+    local targetCF = targetRoot.CFrame
     local lookVector = targetCF.LookVector
     local rightVector = targetCF.RightVector
     
-    -- Farklı pozisyonları dene
-    local positionsToTry = {
-        -- Ana pozisyon
-        {back = -settings.followDistance, side = settings.sideOffset},
-        -- Sağa kay
-        {back = -settings.followDistance, side = settings.sideOffset + 1.0},
-        -- Sola kay
-        {back = -settings.followDistance, side = settings.sideOffset - 1.0},
-        -- Daha uzak
-        {back = -settings.followDistance - 1.0, side = settings.sideOffset},
-        -- Daha yakın
-        {back = -settings.followDistance + 0.5, side = settings.sideOffset},
-        -- Farklı açı
-        {back = -settings.followDistance, side = 0, height = settings.followHeight + 1.0}
-    }
+    -- Hedefin arkasında pozisyon
+    local behindOffset = lookVector * -currentDistance
+    local sideOffset = rightVector * SIDE_OFFSET
+    local heightOffset = Vector3.new(0, FOLLOW_HEIGHT, 0)
     
-    for _, posConfig in ipairs(positionsToTry) do
-        local backOffset = lookVector * posConfig.back
-        local sideOffset = rightVector * (posConfig.side or 0)
-        local heightOffset = Vector3.new(0, posConfig.height or settings.followHeight, 0)
+    -- Temel pozisyon
+    local basePosition = predictedTargetPos + behindOffset + heightOffset + sideOffset
+    
+    -- Titreme efekti ekle
+    time = time + deltaTime
+    local shakeOffset = getShakeOffset(time)
+    local finalPosition = basePosition + shakeOffset
+    
+    -- Anında ışınlanma (teleport)
+    if isTeleporting then
+        humanoidRootPart.CFrame = CFrame.new(finalPosition, Vector3.new(predictedTargetPos.X, finalPosition.Y, predictedTargetPos.Z))
+        return
+    end
+    
+    -- Yumuşak geçiş
+    local currentPos = humanoidRootPart.Position
+    local distanceToTarget = (finalPosition - currentPos).Magnitude
+    
+    -- Hızlı takip için agresif hareket
+    if distanceToTarget > 0.05 then
+        local alpha = math.min(SMOOTHNESS * 3 * deltaTime * 60, 0.8)
+        local smoothPosition = currentPos:Lerp(finalPosition, alpha)
         
-        local testPosition = targetPos + backOffset + sideOffset + heightOffset
+        -- Hedefe bak
+        local lookAtCF = CFrame.new(smoothPosition, Vector3.new(predictedTargetPos.X, smoothPosition.Y, predictedTargetPos.Z))
         
-        -- Çarpışma kontrolü
-        local hasCollision, collidingPlayer = checkPlayerCollision(testPosition)
-        if not hasCollision then
-            -- Raycast ile yer kontrolü
-            local rayOrigin = Vector3.new(testPosition.X, testPosition.Y + 10, testPosition.Z)
-            local rayDirection = Vector3.new(0, -20, 0)
-            local raycastParams = RaycastParams.new()
-            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-            raycastParams.FilterDescendantsInstances = {character}
-            
-            local rayResult = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-            if rayResult then
-                local groundPos = rayResult.Position + Vector3.new(0, settings.groundOffset, 0)
-                return Vector3.new(
-                    testPosition.X,
-                    groundPos.Y + settings.followHeight,
-                    testPosition.Z
-                )
-            end
+        -- Işınlan
+        humanoidRootPart.CFrame = lookAtCF
+    end
+    
+    -- Hedef zıplıyorsa zıpla
+    local targetHumanoid = targetCharacter:FindFirstChild("Humanoid")
+    local myHumanoid = character:FindFirstChild("Humanoid")
+    
+    if targetHumanoid and myHumanoid and not isTeleporting then
+        if targetHumanoid.Jump and not myHumanoid.Jump then
+            task.wait(JUMP_DELAY)
+            myHumanoid.Jump = true
         end
     end
-    
-    -- Hiçbir pozisyon uygun değilse, ana pozisyonu döndür
-    local backOffset = lookVector * -settings.followDistance
-    local sideOffset = rightVector * settings.sideOffset
-    local basePosition = targetPos + backOffset + sideOffset
-    
-    local rayOrigin = Vector3.new(basePosition.X, basePosition.Y + 10, basePosition.Z)
-    local rayDirection = Vector3.new(0, -20, 0)
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    raycastParams.FilterDescendantsInstances = {character}
-    
-    local rayResult = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-    if rayResult then
-        local groundPos = rayResult.Position + Vector3.new(0, settings.groundOffset, 0)
-        return Vector3.new(
-            basePosition.X,
-            groundPos.Y + settings.followHeight,
-            basePosition.Z
-        )
-    end
-    
-    return targetPos + Vector3.new(0, settings.followHeight, 0)
 end
 
--- ============================================
--- GUI SİSTEMİ
--- ============================================
-local function createGUI()
-    log("GUI oluşturuluyor...")
-    
-    local playerGui = player:WaitForChild("PlayerGui")
-    local oldGUI = playerGui:FindFirstChild("SafeTakipGUI")
-    if oldGUI then oldGUI:Destroy() end
-    wait(0.05)
-    
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "SafeTakipGUI"
-    screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
-    -- Main Frame
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 350, 0, 450)
-    mainFrame.Position = UDim2.new(0, 10, 0, 10)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    mainFrame.BorderSizePixel = 2
-    mainFrame.BorderColor3 = Color3.fromRGB(0, 200, 100)
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
-    corner.Parent = mainFrame
-    
-    -- Title
-    local title = Instance.new("TextLabel")
-    title.Text = "🛡️ ÇARPIŞMASIZ TAKİP 🛡️"
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundColor3 = Color3.fromRGB(40, 60, 50)
-    title.TextColor3 = Color3.fromRGB(0, 255, 150)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 16
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 12)
-    titleCorner.Parent = title
-    
-    -- Player List
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Name = "ScrollFrame"
-    scrollFrame.Size = UDim2.new(1, -20, 0, 140)
-    scrollFrame.Position = UDim2.new(0, 10, 0, 50)
-    scrollFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    scrollFrame.ScrollBarThickness = 5
-    scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 100)
-    scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    
-    local scrollCorner = Instance.new("UICorner")
-    scrollCorner.CornerRadius = UDim.new(0, 8)
-    scrollCorner.Parent = scrollFrame
-    
-    local uiListLayout = Instance.new("UIListLayout")
-    uiListLayout.Parent = scrollFrame
-    uiListLayout.Padding = UDim.new(0, 3)
-    
-    local uiPadding = Instance.new("UIPadding")
-    uiPadding.PaddingLeft = UDim.new(0, 5)
-    uiPadding.PaddingTop = UDim.new(0, 5)
-    uiPadding.Parent = scrollFrame
-    
-    -- Control Panel
-    local controlPanel = Instance.new("Frame")
-    controlPanel.Size = UDim2.new(1, -20, 0, 260)
-    controlPanel.Position = UDim2.new(0, 10, 0, 200)
-    controlPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    controlPanel.BorderSizePixel = 1
-    controlPanel.BorderColor3 = Color3.fromRGB(50, 70, 60)
-    
-    local panelCorner = Instance.new("UICorner")
-    panelCorner.CornerRadius = UDim.new(0, 8)
-    panelCorner.Parent = controlPanel
-    
-    -- Status
-    local statusLabel = Instance.new("TextLabel")
-    statusLabel.Name = "StatusLabel"
-    statusLabel.Text = "🔴 TAKİP KAPALI"
-    statusLabel.Size = UDim2.new(1, -20, 0, 25)
-    statusLabel.Position = UDim2.new(0, 10, 0, 10)
-    statusLabel.BackgroundTransparency = 1
-    statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-    statusLabel.Font = Enum.Font.GothamBold
-    statusLabel.TextSize = 14
-    statusLabel.Parent = controlPanel
-    
-    -- Collision Status
-    local collisionLabel = Instance.new("TextLabel")
-    collisionLabel.Name = "CollisionLabel"
-    collisionLabel.Text = "🛡️ Çarpışma: KAPALI"
-    collisionLabel.Size = UDim2.new(1, -20, 0, 25)
-    collisionLabel.Position = UDim2.new(0, 10, 0, 40)
-    collisionLabel.BackgroundTransparency = 1
-    collisionLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-    collisionLabel.Font = Enum.Font.GothamBold
-    collisionLabel.TextSize = 12
-    collisionLabel.Parent = controlPanel
-    
-    -- Distance Control
-    local distanceFrame = Instance.new("Frame")
-    distanceFrame.Size = UDim2.new(1, -20, 0, 30)
-    distanceFrame.Position = UDim2.new(0, 10, 0, 70)
-    distanceFrame.BackgroundTransparency = 1
-    distanceFrame.Parent = controlPanel
-    
-    local distanceLabel = Instance.new("TextLabel")
-    distanceLabel.Name = "DistanceLabel"
-    distanceLabel.Text = "📏 Mesafe: 1.5m"
-    distanceLabel.Size = UDim2.new(0.6, 0, 1, 0)
-    distanceLabel.Position = UDim2.new(0, 0, 0, 0)
-    distanceLabel.BackgroundTransparency = 1
-    distanceLabel.TextColor3 = Color3.fromRGB(200, 230, 255)
-    distanceLabel.Font = Enum.Font.Gotham
-    distanceLabel.TextSize = 12
-    distanceLabel.TextXAlignment = Enum.TextXAlignment.Left
-    distanceLabel.Parent = distanceFrame
-    
-    local distanceMinus = Instance.new("TextButton")
-    distanceMinus.Text = "➖"
-    distanceMinus.Size = UDim2.new(0, 25, 0, 25)
-    distanceMinus.Position = UDim2.new(0.65, 0, 0, 0)
-    distanceMinus.BackgroundColor3 = Color3.fromRGB(60, 80, 70)
-    distanceMinus.TextColor3 = Color3.fromRGB(255, 150, 150)
-    distanceMinus.Font = Enum.Font.GothamBold
-    distanceMinus.TextSize = 12
-    distanceMinus.Parent = distanceFrame
-    
-    local distancePlus = Instance.new("TextButton")
-    distancePlus.Text = "➕"
-    distancePlus.Size = UDim2.new(0, 25, 0, 25)
-    distancePlus.Position = UDim2.new(0.8, 0, 0, 0)
-    distancePlus.BackgroundColor3 = Color3.fromRGB(60, 80, 70)
-    distancePlus.TextColor3 = Color3.fromRGB(150, 255, 150)
-    distancePlus.Font = Enum.Font.GothamBold
-    distancePlus.TextSize = 12
-    distancePlus.Parent = distanceFrame
-    
-    -- Height Control
-    local heightFrame = Instance.new("Frame")
-    heightFrame.Size = UDim2.new(1, -20, 0, 30)
-    heightFrame.Position = UDim2.new(0, 10, 0, 105)
-    heightFrame.BackgroundTransparency = 1
-    heightFrame.Parent = controlPanel
-    
-    local heightLabel = Instance.new("TextLabel")
-    heightLabel.Name = "HeightLabel"
-    heightLabel.Text = "📐 Yükseklik: 1.8m"
-    heightLabel.Size = UDim2.new(0.6, 0, 1, 0)
-    heightLabel.Position = UDim2.new(0, 0, 0, 0)
-    heightLabel.BackgroundTransparency = 1
-    heightLabel.TextColor3 = Color3.fromRGB(200, 230, 255)
-    heightLabel.Font = Enum.Font.Gotham
-    heightLabel.TextSize = 12
-    heightLabel.TextXAlignment = Enum.TextXAlignment.Left
-    heightLabel.Parent = heightFrame
-    
-    local heightMinus = Instance.new("TextButton")
-    heightMinus.Text = "➖"
-    heightMinus.Size = UDim2.new(0, 25, 0, 25)
-    heightMinus.Position = UDim2.new(0.65, 0, 0, 0)
-    heightMinus.BackgroundColor3 = Color3.fromRGB(60, 80, 70)
-    heightMinus.TextColor3 = Color3.fromRGB(255, 150, 150)
-    heightMinus.Font = Enum.Font.GothamBold
-    heightMinus.TextSize = 12
-    heightMinus.Parent = heightFrame
-    
-    local heightPlus = Instance.new("TextButton")
-    heightPlus.Text = "➕"
-    heightPlus.Size = UDim2.new(0, 25, 0, 25)
-    heightPlus.Position = UDim2.new(0.8, 0, 0, 0)
-    heightPlus.BackgroundColor3 = Color3.fromRGB(60, 80, 70)
-    heightPlus.TextColor3 = Color3.fromRGB(150, 255, 150)
-    heightPlus.Font = Enum.Font.GothamBold
-    heightPlus.TextSize = 12
-    heightPlus.Parent = heightFrame
-    
-    -- Shake Control
-    local shakeFrame = Instance.new("Frame")
-    shakeFrame.Size = UDim2.new(1, -20, 0, 30)
-    shakeFrame.Position = UDim2.new(0, 10, 0, 140)
-    shakeFrame.BackgroundTransparency = 1
-    shakeFrame.Parent = controlPanel
-    
-    local shakeLabel = Instance.new("TextLabel")
-    shakeLabel.Name = "ShakeLabel"
-    shakeLabel.Text = "🌀 Titreme: %30"
-    shakeLabel.Size = UDim2.new(0.6, 0, 1, 0)
-    shakeLabel.Position = UDim2.new(0, 0, 0, 0)
-    shakeLabel.BackgroundTransparency = 1
-    shakeLabel.TextColor3 = Color3.fromRGB(255, 200, 255)
-    shakeLabel.Font = Enum.Font.Gotham
-    shakeLabel.TextSize = 12
-    shakeLabel.TextXAlignment = Enum.TextXAlignment.Left
-    shakeLabel.Parent = shakeFrame
-    
-    local shakeMinus = Instance.new("TextButton")
-    shakeMinus.Text = "➖"
-    shakeMinus.Size = UDim2.new(0, 25, 0, 25)
-    shakeMinus.Position = UDim2.new(0.65, 0, 0, 0)
-    shakeMinus.BackgroundColor3 = Color3.fromRGB(60, 80, 70)
-    shakeMinus.TextColor3 = Color3.fromRGB(255, 150, 150)
-    shakeMinus.Font = Enum.Font.GothamBold
-    shakeMinus.TextSize = 12
-    shakeMinus.Parent = shakeFrame
-    
-    local shakePlus = Instance.new("TextButton")
-    shakePlus.Text = "➕"
-    shakePlus.Size = UDim2.new(0, 25, 0, 25)
-    shakePlus.Position = UDim2.new(0.8, 0, 0, 0)
-    shakePlus.BackgroundColor3 = Color3.fromRGB(60, 80, 70)
-    shakePlus.TextColor3 = Color3.fromRGB(150, 255, 150)
-    shakePlus.Font = Enum.Font.GothamBold
-    shakePlus.TextSize = 12
-    shakePlus.Parent = shakeFrame
-    
-    -- Collision Toggle
-    local collisionFrame = Instance.new("Frame")
-    collisionFrame.Size = UDim2.new(1, -20, 0, 30)
-    collisionFrame.Position = UDim2.new(0, 10, 0, 175)
-    collisionFrame.BackgroundTransparency = 1
-    collisionFrame.Parent = controlPanel
-    
-    local collisionToggleLabel = Instance.new("TextLabel")
-    collisionToggleLabel.Name = "CollisionToggleLabel"
-    collisionToggleLabel.Text = "🚫 Oyuncu Kaçınma: AÇIK"
-    collisionToggleLabel.Size = UDim2.new(0.7, 0, 1, 0)
-    collisionToggleLabel.Position = UDim2.new(0, 0, 0, 0)
-    collisionToggleLabel.BackgroundTransparency = 1
-    collisionToggleLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-    collisionToggleLabel.Font = Enum.Font.Gotham
-    collisionToggleLabel.TextSize = 11
-    collisionToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    collisionToggleLabel.Parent = collisionFrame
-    
-    local collisionToggleBtn = Instance.new("TextButton")
-    collisionToggleBtn.Text = "🔄"
-    collisionToggleBtn.Size = UDim2.new(0, 30, 0, 25)
-    collisionToggleBtn.Position = UDim2.new(0.8, 0, 0, 0)
-    collisionToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 70)
-    collisionToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    collisionToggleBtn.Font = Enum.Font.GothamBold
-    collisionToggleBtn.TextSize = 12
-    collisionToggleBtn.Parent = collisionFrame
-    
-    -- Action Buttons
-    local actionFrame = Instance.new("Frame")
-    actionFrame.Size = UDim2.new(1, -20, 0, 40)
-    actionFrame.Position = UDim2.new(0, 10, 0, 210)
-    actionFrame.BackgroundTransparency = 1
-    actionFrame.Parent = controlPanel
-    
-    local startButton = Instance.new("TextButton")
-    startButton.Name = "StartButton"
-    startButton.Text = "🚀 BAŞLAT"
-    startButton.Size = UDim2.new(0.48, 0, 1, 0)
-    startButton.Position = UDim2.new(0, 0, 0, 0)
-    startButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    startButton.Font = Enum.Font.GothamBold
-    startButton.TextSize = 14
-    startButton.Parent = actionFrame
-    
-    local stopButton = Instance.new("TextButton")
-    stopButton.Name = "StopButton"
-    stopButton.Text = "⛔ DURDUR"
-    stopButton.Size = UDim2.new(0.48, 0, 1, 0)
-    stopButton.Position = UDim2.new(0.52, 0, 0, 0)
-    stopButton.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-    stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    stopButton.Font = Enum.Font.GothamBold
-    stopButton.TextSize = 14
-    stopButton.Visible = false
-    stopButton.Parent = actionFrame
-    
-    -- Close button
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Text = "✕"
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0, 5)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 14
-    closeBtn.Parent = mainFrame
-    
-    -- Add corners
-    local function addCorner(obj)
-        local crn = Instance.new("UICorner")
-        crn.CornerRadius = UDim.new(0, 6)
-        crn.Parent = obj
+-- Takip sistemini BAŞLAT
+local function startTracking()
+    if not selectedPlayer then 
+        statusLabel.Text = "⚠️ OYUNCU SEÇİLMEDİ"
+        task.wait(1)
+        statusLabel.Text = "🔴 TAKİP KAPALI"
+        return 
     end
     
-    addCorner(distanceMinus)
-    addCorner(distancePlus)
-    addCorner(heightMinus)
-    addCorner(heightPlus)
-    addCorner(shakeMinus)
-    addCorner(shakePlus)
-    addCorner(collisionToggleBtn)
-    addCorner(startButton)
-    addCorner(stopButton)
-    addCorner(closeBtn)
-    
-    -- Parent everything
-    screenGui.Parent = playerGui
-    title.Parent = mainFrame
-    scrollFrame.Parent = mainFrame
-    controlPanel.Parent = mainFrame
-    mainFrame.Parent = screenGui
-    
-    log("GUI oluşturuldu!")
-    
-    return {
-        ScreenGui = screenGui,
-        ScrollFrame = scrollFrame,
-        StatusLabel = statusLabel,
-        CollisionLabel = collisionLabel,
-        CollisionToggleLabel = collisionToggleLabel,
-        DistanceLabel = distanceLabel,
-        HeightLabel = heightLabel,
-        ShakeLabel = shakeLabel,
-        StartButton = startButton,
-        StopButton = stopButton,
-        DistanceMinus = distanceMinus,
-        DistancePlus = distancePlus,
-        HeightMinus = heightMinus,
-        HeightPlus = heightPlus,
-        ShakeMinus = shakeMinus,
-        ShakePlus = shakePlus,
-        CollisionToggleBtn = collisionToggleBtn,
-        CloseBtn = closeBtn
-    }
-end
-
--- ============================================
--- ÇARPIŞMASIZ TAKİP SİSTEMİ
--- ============================================
-local function calculateVelocity(currentPos, lastPos, deltaTime)
-    if deltaTime > 0 then
-        return (currentPos - lastPos) / deltaTime
-    end
-    return Vector3.new(0, 0, 0)
-end
-
-local function calculateShakeOffset()
-    if not settings.useShake or settings.shakeIntensity <= 0 then
-        return Vector3.new(0, 0, 0)
+    -- Önceki takibi durdur
+    if trackingConnection then
+        trackingConnection:Disconnect()
+        trackingConnection = nil
     end
     
-    timeOffset = timeOffset + (tick() - lastUpdate) * settings.shakeSpeed
+    isTracking = true
+    statusLabel.Text = "✅ TAKİP AÇIK: " .. selectedPlayer.Name
+    statusLabel.TextColor3 = Color3.fromRGB(80, 255, 80)
+    startButton.Visible = false
+    stopButton.Visible = true
     
-    local shakeX = math.sin(timeOffset * 2.5) * settings.shakeIntensity
-    local shakeY = math.cos(timeOffset * 1.8) * settings.shakeIntensity * 0.6
-    local shakeZ = math.sin(timeOffset * 3.2) * settings.shakeIntensity * 0.4
-    
-    return Vector3.new(shakeX, shakeY, shakeZ)
-end
-
-local function safeTeleport(targetCharacter)
-    if not targetCharacter or not humanoidRootPart then
-        return false
+    -- İlk ışınlanma
+    isTeleporting = true
+    local targetCharacter = selectedPlayer.Character
+    if targetCharacter then
+        local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+        if targetRoot and humanoidRootPart then
+            -- Arkasında başla
+            local lookVector = targetRoot.CFrame.LookVector
+            local behindOffset = lookVector * -currentDistance
+            local heightOffset = Vector3.new(0, FOLLOW_HEIGHT, 0)
+            local sideOffset = targetRoot.CFrame.RightVector * SIDE_OFFSET
+            local startPosition = targetRoot.Position + behindOffset + heightOffset + sideOffset
+            
+            -- Titreme ekle
+            local shakeOffset = getShakeOffset(time)
+            startPosition = startPosition + shakeOffset
+            
+            humanoidRootPart.CFrame = CFrame.new(startPosition, targetRoot.Position)
+        end
     end
+    isTeleporting = false
     
-    local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
-    if not targetRoot then
-        return false
-    end
-    
-    local currentTime = tick()
-    local deltaTime = currentTime - lastUpdate
-    lastUpdate = currentTime
-    
-    -- HEDEF POZİSYONU
-    local targetPos = targetRoot.Position
-    local targetCF = targetRoot.CFrame
-    
-    -- HAREKET TAHMİNİ
-    targetVelocity = calculateVelocity(targetPos, lastTargetPos, deltaTime)
-    local predictedPos = targetPos + (targetVelocity * settings.prediction)
-    lastTargetPos = targetPos
-    
-    -- GÜVENLİ POZİSYON BUL
-    local safePosition = findSafePosition(predictedPos, targetCF)
-    
-    -- TİTREME EFEKTİ
-    local shakeOffset = calculateShakeOffset()
-    local finalPosition = safePosition + shakeOffset
-    
-    -- ÇARPIŞMA KONTROLÜ
-    local hasCollision, collidingPlayer = checkPlayerCollision(finalPosition)
-    if hasCollision and settings.avoidPlayers then
-        -- Çarpışma varsa, pozisyonu ayarla
-        log("Çarpışma tespit edildi: " .. collidingPlayer.Name)
-        safePosition = findSafePosition(predictedPos, targetCF)
-        finalPosition = safePosition + shakeOffset
-    end
-    
-    -- TELEPORT
-    humanoidRootPart.CFrame = CFrame.new(finalPosition, predictedPos)
-    
-    return true
-end
-
-local function safeTrackingLoop()
-    log("Çarpışmasız takip döngüsü başladı!")
-    
-    while isTracking do
-        if selectedPlayer then
+    -- Hızlı takip bağlantısı
+    trackingConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        if isTracking and selectedPlayer then
             local targetCharacter = selectedPlayer.Character
-            
             if targetCharacter then
-                local success = safeTeleport(targetCharacter)
-                
-                if not success then
-                    wait(0.5)
-                end
-            else
-                wait(0.5)
+                rapidFollow(targetCharacter, deltaTime)
             end
-        else
-            break
         end
-        
-        wait(settings.updateRate)
-    end
+    end)
     
-    log("Takip döngüsü durdu")
+    print("✅ Takip başlatıldı: " .. selectedPlayer.Name)
 end
 
--- ============================================
--- GUI MANAGEMENT
--- ============================================
-local GUI = createGUI()
+-- Takip sistemini DURDUR
+local function stopTracking()
+    isTracking = false
+    statusLabel.Text = "🔴 TAKİP KAPALI"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+    startButton.Visible = true
+    stopButton.Visible = false
+    lastPosition = nil
+    velocity = Vector3.zero
+    
+    if trackingConnection then
+        trackingConnection:Disconnect()
+        trackingConnection = nil
+    end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid:MoveTo(humanoidRootPart.Position)
+    end
+end
 
+-- Mesafe değiştirme
+local function changeDistance(amount)
+    currentDistance = math.clamp(currentDistance + amount, 0.1, 5)
+    distanceLabel.Text = "📏 MESAFE: " .. string.format("%.1f", currentDistance) .. "m"
+end
+
+-- Titreme değiştirme
+local function changeShake(amount)
+    currentShake = math.clamp(currentShake + amount, 0, 0.5)
+    shakeLabel.Text = "🌀 TİTREME: " .. string.format("%.2f", currentShake)
+end
+
+-- Oyuncu listesini güncelle
 local function updatePlayerList()
-    if not GUI or not GUI.ScrollFrame then return end
-    
-    local scrollFrame = GUI.ScrollFrame
-    
-    -- Clear
     for _, child in ipairs(scrollFrame:GetChildren()) do
         if child:IsA("TextButton") then
             child:Destroy()
         end
     end
     
-    -- Create player buttons
+    local playerCount = 0
     for _, otherPlayer in ipairs(Players:GetPlayers()) do
         if otherPlayer ~= player then
+            playerCount = playerCount + 1
+            
             local playerButton = Instance.new("TextButton")
             playerButton.Name = otherPlayer.Name
             playerButton.Text = "👤 " .. otherPlayer.Name
-            playerButton.Size = UDim2.new(1, -10, 0, 32)
-            playerButton.BackgroundColor3 = Color3.fromRGB(40, 50, 45)
-            playerButton.TextColor3 = Color3.fromRGB(220, 255, 240)
+            playerButton.Size = UDim2.new(1, -5, 0, 28)
+            playerButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            playerButton.TextColor3 = Color3.fromRGB(200, 200, 200)
             playerButton.Font = Enum.Font.Gotham
-            playerButton.TextSize = 12
+            playerButton.TextSize = 11
             playerButton.AutoButtonColor = true
-            playerButton.Parent = scrollFrame
             
             local buttonCorner = Instance.new("UICorner")
-            buttonCorner.CornerRadius = UDim.new(0, 6)
+            buttonCorner.CornerRadius = UDim.new(0, 4)
             buttonCorner.Parent = playerButton
             
-            -- Selection
             playerButton.MouseButton1Click:Connect(function()
                 for _, btn in ipairs(scrollFrame:GetChildren()) do
                     if btn:IsA("TextButton") then
-                        btn.BackgroundColor3 = Color3.fromRGB(40, 50, 45)
+                        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
                     end
                 end
                 
-                playerButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+                playerButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
                 selectedPlayer = otherPlayer
-                GUI.StatusLabel.Text = "🎯 SEÇİLDİ: " .. otherPlayer.Name
-                GUI.StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
-                log("Oyuncu seçildi: " .. otherPlayer.Name)
+                statusLabel.Text = "🎯 SEÇİLDİ: " .. otherPlayer.Name
+                statusLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
+                
+                if isTracking then
+                    startTracking()
+                end
             end)
+            
+            playerButton.Parent = scrollFrame
         end
+    end
+    
+    if playerCount == 0 then
+        local emptyLabel = Instance.new("TextLabel")
+        emptyLabel.Name = "EmptyLabel"
+        emptyLabel.Text = "🌙 Sunucuda başka oyuncu yok"
+        emptyLabel.Size = UDim2.new(1, 0, 0, 28)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        emptyLabel.Font = Enum.Font.Gotham
+        emptyLabel.TextSize = 11
+        emptyLabel.Parent = scrollFrame
     end
 end
 
-local function updateDisplays()
-    -- Mesafe
-    GUI.DistanceLabel.Text = string.format("📏 Mesafe: %.1fm", settings.followDistance)
-    
-    -- Yükseklik
-    GUI.HeightLabel.Text = string.format("📐 Yükseklik: %.1fm", settings.followHeight)
-    
-    -- Titreme
-    local shakePercent = math.floor(settings.shakeIntensity * 100)
-    GUI.ShakeLabel.Text = string.format("🌀 Titreme: %%%d", shakePercent)
-    
-    -- Çarpışma durumu
-    if isTracking then
-        GUI.CollisionLabel.Text = "🛡️ Çarpışma: KAPALI"
-        GUI.CollisionLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+-- Buton eventleri
+startButton.MouseButton1Click:Connect(function()
+    if selectedPlayer then
+        startTracking()
     else
-        GUI.CollisionLabel.Text = "🛡️ Çarpışma: AÇIK"
-        GUI.CollisionLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-    end
-    
-    -- Oyuncu kaçınma
-    if settings.avoidPlayers then
-        GUI.CollisionToggleLabel.Text = "🚫 Oyuncu Kaçınma: AÇIK"
-        GUI.CollisionToggleLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-    else
-        GUI.CollisionToggleLabel.Text = "🚫 Oyuncu Kaçınma: KAPALI"
-        GUI.CollisionToggleLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-    end
-end
-
--- ============================================
--- TAKİP KONTROLLERİ
--- ============================================
-local function startSafeTracking()
-    if not selectedPlayer then
-        GUI.StatusLabel.Text = "⚠️ OYUNCU SEÇ!"
-        wait(0.5)
-        GUI.StatusLabel.Text = "🔴 TAKİP KAPALI"
-        return
-    end
-    
-    -- Stop old thread
-    if trackingThread then
-        coroutine.close(trackingThread)
-        trackingThread = nil
-    end
-    
-    -- Çarpışmayı kapat
-    setupCollision()
-    
-    -- Reset
-    isTracking = true
-    timeOffset = 0
-    lastTargetPos = Vector3.new(0, 0, 0)
-    targetVelocity = Vector3.new(0, 0, 0)
-    lastUpdate = tick()
-    
-    -- First teleport
-    local targetCharacter = selectedPlayer.Character
-    if targetCharacter then
-        safeTeleport(targetCharacter)
-    end
-    
-    -- Update GUI
-    GUI.StatusLabel.Text = "✅ TAKİP: " .. selectedPlayer.Name
-    GUI.StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-    GUI.StartButton.Visible = false
-    GUI.StopButton.Visible = true
-    updateDisplays()
-    
-    -- Start tracking
-    trackingThread = coroutine.create(safeTrackingLoop)
-    coroutine.resume(trackingThread)
-    
-    log("Çarpışmasız takip başlatıldı: " .. selectedPlayer.Name)
-end
-
-local function stopSafeTracking()
-    isTracking = false
-    
-    -- Çarpışmayı geri aç
-    restoreCollision()
-    
-    if trackingThread then
-        coroutine.close(trackingThread)
-        trackingThread = nil
-    end
-    
-    GUI.StatusLabel.Text = "🔴 TAKİP KAPALI"
-    GUI.StatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-    GUI.StartButton.Visible = true
-    GUI.StopButton.Visible = false
-    updateDisplays()
-    
-    log("Takip durduruldu")
-end
-
--- ============================================
--- CONTROLS SETUP
--- ============================================
--- Distance controls
-GUI.DistanceMinus.MouseButton1Click:Connect(function()
-    settings.followDistance = math.max(0.5, settings.followDistance - 0.2)
-    updateDisplays()
-    log("Mesafe azaltıldı: " .. settings.followDistance)
-    
-    if isTracking and selectedPlayer then
-        local targetCharacter = selectedPlayer.Character
-        if targetCharacter then
-            safeTeleport(targetCharacter)
-        end
+        local oldText = startButton.Text
+        startButton.Text = "⚠️ OYUNCU SEÇ!"
+        task.wait(0.5)
+        startButton.Text = oldText
     end
 end)
 
-GUI.DistancePlus.MouseButton1Click:Connect(function()
-    settings.followDistance = math.min(5.0, settings.followDistance + 0.2)
-    updateDisplays()
-    log("Mesafe arttırıldı: " .. settings.followDistance)
-    
-    if isTracking and selectedPlayer then
-        local targetCharacter = selectedPlayer.Character
-        if targetCharacter then
-            safeTeleport(targetCharacter)
-        end
+stopButton.MouseButton1Click:Connect(function()
+    stopTracking()
+end)
+
+closeButton.MouseButton1Click:Connect(function()
+    screenGui.Enabled = not screenGui.Enabled
+    if not screenGui.Enabled then
+        stopTracking()
     end
 end)
 
--- Height controls
-GUI.HeightMinus.MouseButton1Click:Connect(function()
-    settings.followHeight = math.max(0.5, settings.followHeight - 0.2)
-    updateDisplays()
-    log("Yükseklik azaltıldı: " .. settings.followHeight)
-    
-    if isTracking and selectedPlayer then
-        local targetCharacter = selectedPlayer.Character
-        if targetCharacter then
-            safeTeleport(targetCharacter)
-        end
-    end
-end)
+-- Mesafe kontrol butonları
+local minusBtn = Instance.new("TextButton")
+minusBtn.Text = "-"
+minusBtn.Size = UDim2.new(0, 22, 0, 22)
+minusBtn.Position = UDim2.new(0.65, 0, 0.2, 0)
+minusBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+minusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minusBtn.Font = Enum.Font.GothamBold
+minusBtn.TextSize = 12
+minusBtn.Parent = controlFrame
 
-GUI.HeightPlus.MouseButton1Click:Connect(function()
-    settings.followHeight = math.min(3.0, settings.followHeight + 0.2)
-    updateDisplays()
-    log("Yükseklik arttırıldı: " .. settings.followHeight)
-    
-    if isTracking and selectedPlayer then
-        local targetCharacter = selectedPlayer.Character
-        if targetCharacter then
-            safeTeleport(targetCharacter)
-        end
-    end
-end)
+local plusBtn = Instance.new("TextButton")
+plusBtn.Text = "+"
+plusBtn.Size = UDim2.new(0, 22, 0, 22)
+plusBtn.Position = UDim2.new(0.8, 0, 0.2, 0)
+plusBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+plusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+plusBtn.Font = Enum.Font.GothamBold
+plusBtn.TextSize = 12
+plusBtn.Parent = controlFrame
 
--- Shake controls
-GUI.ShakeMinus.MouseButton1Click:Connect(function()
-    settings.shakeIntensity = math.max(0.0, settings.shakeIntensity - 0.05)
-    updateDisplays()
-    log("Titreme şiddeti azaltıldı: " .. settings.shakeIntensity)
-end)
+-- Titreme kontrol butonları
+local minusShakeBtn = Instance.new("TextButton")
+minusShakeBtn.Text = "-"
+minusShakeBtn.Size = UDim2.new(0, 22, 0, 22)
+minusShakeBtn.Position = UDim2.new(0.65, 0, 0.5, 0)
+minusShakeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+minusShakeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minusShakeBtn.Font = Enum.Font.GothamBold
+minusShakeBtn.TextSize = 12
+minusShakeBtn.Parent = controlFrame
 
-GUI.ShakePlus.MouseButton1Click:Connect(function()
-    settings.shakeIntensity = math.min(1.0, settings.shakeIntensity + 0.05)
-    updateDisplays()
-    log("Titreme şiddeti arttırıldı: " .. settings.shakeIntensity)
-end)
+local plusShakeBtn = Instance.new("TextButton")
+plusShakeBtn.Text = "+"
+plusShakeBtn.Size = UDim2.new(0, 22, 0, 22)
+plusShakeBtn.Position = UDim2.new(0.8, 0, 0.5, 0)
+plusShakeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+plusShakeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+plusShakeBtn.Font = Enum.Font.GothamBold
+plusShakeBtn.TextSize = 12
+plusShakeBtn.Parent = controlFrame
 
--- Collision toggle
-GUI.CollisionToggleBtn.MouseButton1Click:Connect(function()
-    settings.avoidPlayers = not settings.avoidPlayers
-    updateDisplays()
-    log("Oyuncu kaçınma: " .. (settings.avoidPlayers and "AÇIK" or "KAPALI"))
-end)
+local smallCorner = Instance.new("UICorner")
+smallCorner.CornerRadius = UDim.new(0, 4)
+smallCorner.Parent = minusBtn
+smallCorner:Clone().Parent = plusBtn
+smallCorner:Clone().Parent = minusShakeBtn
+smallCorner:Clone().Parent = plusShakeBtn
 
--- Start/Stop buttons
-GUI.StartButton.MouseButton1Click:Connect(function()
-    startSafeTracking()
-end)
+minusBtn.MouseButton1Click:Connect(function() changeDistance(-0.2) end)
+plusBtn.MouseButton1Click:Connect(function() changeDistance(0.2) end)
+minusShakeBtn.MouseButton1Click:Connect(function() changeShake(-0.02) end)
+plusShakeBtn.MouseButton1Click:Connect(function() changeShake(0.02) end)
 
-GUI.StopButton.MouseButton1Click:Connect(function()
-    stopSafeTracking()
-end)
-
--- Close button
-GUI.CloseBtn.MouseButton1Click:Connect(function()
-    GUI.ScreenGui.Enabled = not GUI.ScreenGui.Enabled
-    if not GUI.ScreenGui.Enabled then
-        stopSafeTracking()
-    end
-end)
-
--- Keyboard shortcuts
-local UIS = game:GetService("UserInputService")
-UIS.InputBegan:Connect(function(input, gameProcessed)
+-- Klavye kontrolleri
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
     if input.KeyCode == Enum.KeyCode.T then
         if selectedPlayer then
             if isTracking then
-                stopSafeTracking()
+                stopTracking()
             else
-                startSafeTracking()
+                startTracking()
             end
         end
-    elseif input.KeyCode == Enum.KeyCode.C then
-        -- Çarpışma aç/kapat
-        settings.avoidPlayers = not settings.avoidPlayers
-        updateDisplays()
-        log("Çarpışma kaçınma (C): " .. (settings.avoidPlayers and "AÇIK" or "KAPALI"))
+    elseif input.KeyCode == Enum.KeyCode.R then
+        if selectedPlayer then
+            startTracking()
+        end
+    elseif input.KeyCode == Enum.KeyCode.Q then
+        changeDistance(-0.2)
+    elseif input.KeyCode == Enum.KeyCode.E then
+        changeDistance(0.2)
+    elseif input.KeyCode == Enum.KeyCode.Z then
+        changeShake(-0.02)
+    elseif input.KeyCode == Enum.KeyCode.X then
+        changeShake(0.02)
     end
 end)
 
--- ============================================
--- INITIALIZATION
--- ============================================
--- Initial displays
-updateDisplays()
+-- Oyuncu listesini başlat
 updatePlayerList()
 
--- Player events
+-- Oyuncu değişikliklerini dinle
 Players.PlayerAdded:Connect(function()
-    wait(0.3)
+    task.wait(0.5)
     updatePlayerList()
 end)
 
-Players.PlayerRemoving:Connect(function(exitingPlayer)
-    wait(0.2)
+Players.PlayerRemoving:Connect(function(leavingPlayer)
+    task.wait(0.3)
     updatePlayerList()
     
-    if selectedPlayer and exitingPlayer == selectedPlayer then
-        log("Hedef oyuncu çıktı!")
-        stopSafeTracking()
+    if selectedPlayer and selectedPlayer == leavingPlayer then
+        stopTracking()
         selectedPlayer = nil
-        GUI.StatusLabel.Text = "🔴 OYUNCU ÇIKTI"
-        wait(1.5)
-        GUI.StatusLabel.Text = "🔴 TAKİP KAPALI"
+        statusLabel.Text = "🔴 OYUNCU ÇIKTI"
+        task.wait(1)
+        statusLabel.Text = "🔴 TAKİP KAPALI"
     end
 end)
 
--- Character events
+-- Karakter değişikliklerini dinle
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
     
     if isTracking and selectedPlayer then
-        wait(0.2)
-        startSafeTracking()
+        task.wait(0.5)
+        startTracking()
     end
 end)
 
--- Global commands
-_G.SafeTakip_Baslat = function(playerName)
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p.Name == playerName then
-            selectedPlayer = p
-            startSafeTracking()
-            break
-        end
-    end
-end
-
-_G.SafeTakip_Durdur = stopSafeTracking
-_G.SafeTakip_Ayarlar = function()
-    print("=== ÇARPIŞMASIZ TAKİP AYARLARI ===")
-    print("Mesafe: " .. settings.followDistance .. "m")
-    print("Yükseklik: " .. settings.followHeight .. "m")
-    print("Titreme Şiddeti: %" .. math.floor(settings.shakeIntensity * 100))
-    print("Çarpışma Kaçınma: " .. tostring(settings.avoidPlayers))
-    print("Çarpışma Yarıçapı: " .. settings.collisionRadius .. "m")
-    print("Seçili Oyuncu: " .. (selectedPlayer and selectedPlayer.Name or "Yok"))
-    print("Takip Aktif: " .. tostring(isTracking))
-    print("===================================")
-end
-
-_G.SafeTakip_Carpisma = function(durum)
-    if durum ~= nil then
-        settings.avoidPlayers = durum
-        updateDisplays()
-        print("Çarpışma kaçınma: " .. (settings.avoidPlayers and "AÇIK" or "KAPALI"))
-    end
-end
-
-_G.SafeTakip_Mesafe = function(yeniMesafe)
-    if yeniMesafe then
-        settings.followDistance = math.clamp(yeniMesafe, 0.5, 5.0)
-        updateDisplays()
-        print("Mesafe ayarlandı: " .. settings.followDistance .. "m")
-    end
-end
-
+-- Başlangıç mesajı
 print("==========================================")
-print("🛡️ ÇARPIŞMASIZ TAKİP SİSTEMİ YÜKLENDİ! 🛡️")
+print("✅ YAKIN TAKİP SİSTEMİ YÜKLENDİ!")
 print("==========================================")
-print("✅ ÖZELLİKLER:")
-print("   • OTOMATİK ÇARPIŞMA KAPATMA")
-print("   • OYUNCULARDAN OTOMATİK KAÇINMA")
-print("   • ÇOKLU POZİSYON DENEMESİ")
-print("   • HAVAYA ÇIKMAZ - Yere basar")
-print("   • AYARLANABİLİR TÜM PARAMETRELER")
+print("🎯 YENİ ÖZELLİKLER:")
+print("   • TİTREME EFEKTİ (Z/X ile kontrol)")
+print("   • SÜPER HIZLI TEPKİ SÜRESİ (0.05s)")
+print("   • HAREKET TAHMİNİ ALGORİTMASI")
+print("   • HEDEF ZIPLADIĞINDA ZIPLAMA")
+print("   • ARKASINDAN TAKİP (Sürekli arkada kal)")
 print("==========================================")
 print("🎮 KONTROLLER:")
 print("   • T - Takip Aç/Kapat")
-print("   • C - Çarpışma Kaçınma Aç/Kapat")
+print("   • R - Arkasına ışınlan ve Takip Başlat")
+print("   • Q/E - Mesafe Ayarla (0.1m - 5m)")
+print("   • Z/X - Titreme Şiddeti (0 - 0.5)")
 print("==========================================")
-print("🔧 KOMUTLAR (konsola yaz):")
-print("   _G.SafeTakip_Baslat('OyuncuAdı')")
-print("   _G.SafeTakip_Durdur()")
-print("   _G.SafeTakip_Carpisma(true/false)")
-print("   _G.SafeTakip_Mesafe(2.0)")
-print("   _G.SafeTakip_Ayarlar()")
-print("==========================================")
-print("⚠️ ARTIK OYUNCULAR ÇARPMAYACAK VE BOZULMAYACAK!")
+print("🚀 KULLANIM:")
+print("   1. Oyuncu seç")
+print("   2. BAŞLAT butonuna tıkla")
+print("   3. Sürekli hedefin ARKASINDA kalacak")
+print("   4. Titreme ile daha organik görünüm")
 print("==========================================")
