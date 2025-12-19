@@ -1,165 +1,226 @@
---== SETTINGS ==--
-local FOLLOW_DISTANCE = 4
-local FOLLOW_SPEED = 1.5
-local GUI_TOGGLE_KEY = Enum.KeyCode.F
-
-
---== SERVICES ==--
+--==============================
+-- SERVICES
+--==============================
 local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local root = character:WaitForChild("HumanoidRootPart")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
-local currentTarget = nil
-local isFollowing = false
+local lp = Players.LocalPlayer
+local mouse = lp:GetMouse()
 
+--==============================
+-- STATE / AYARLAR
+--==============================
+local guiOpen = true
+local follow = false
+local autoclick = false
 
---== GUI CREATE ==--
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+local followTarget = nil
+local followTargetName = nil -- respawn için
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 350)
-frame.Position = UDim2.new(0, 25, 0, 25)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.Parent = screenGui
+local followDistance = 5
+local followHeight = 0
+local sideOffset = 0
 
--- TOGGLE BUTTON
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 30, 0, 30)
-toggleButton.Position = UDim2.new(1, -35, 0, 5)
-toggleButton.Text = "X"
-toggleButton.Parent = frame
+local MIN_VAL = -100
+local MAX_VAL = 100
 
-toggleButton.MouseButton1Click:Connect(function()
-	frame.Visible = false
+local SMOOTH = 0.15 -- 0.1 çok yumuşak | 0.3 daha hızlı
+
+--==============================
+-- GUI
+--==============================
+local gui = Instance.new("ScreenGui")
+gui.Name = "FollowFullGui"
+gui.Parent = game.CoreGui
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(320, 420)
+frame.Position = UDim2.fromScale(0.05, 0.25)
+frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local function button(text, y)
+	local b = Instance.new("TextButton", frame)
+	b.Size = UDim2.fromOffset(300, 34)
+	b.Position = UDim2.fromOffset(10, y)
+	b.BackgroundColor3 = Color3.fromRGB(45,45,45)
+	b.TextColor3 = Color3.new(1,1,1)
+	b.Font = Enum.Font.SourceSansBold
+	b.TextSize = 16
+	b.Text = text
+	return b
+end
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.fromOffset(300, 30)
+title.Position = UDim2.fromOffset(10, 5)
+title.BackgroundTransparency = 1
+title.Text = "FOLLOW + AUTOCLICKER (SMOOTH)"
+title.TextColor3 = Color3.fromRGB(0,170,255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+
+local followBtn = button("Follow: OFF", 45)
+local acBtn = button("AutoClicker (F): OFF", 85)
+
+local distMinus = button("Mesafe -5", 130)
+local distPlus  = button("Mesafe +5", 165)
+
+local hMinus = button("Yükseklik -5", 205)
+local hPlus  = button("Yükseklik +5", 240)
+
+local sideMinus = button("Sol -5", 280)
+local sidePlus  = button("Sağ +5", 315)
+
+local info = Instance.new("TextLabel", frame)
+info.Size = UDim2.fromOffset(300, 70)
+info.Position = UDim2.fromOffset(10, 350)
+info.BackgroundTransparency = 1
+info.TextWrapped = true
+info.TextColor3 = Color3.new(1,1,1)
+info.Font = Enum.Font.SourceSans
+info.TextSize = 14
+
+local function updateInfo()
+	info.Text =
+		"Mesafe: "..followDistance..
+		"\nYükseklik: "..followHeight..
+		"\nSağ / Sol: "..sideOffset
+end
+updateInfo()
+
+--==============================
+-- TARGET SEÇME (SOL TIK)
+--==============================
+mouse.Button1Down:Connect(function()
+	if mouse.Target then
+		local model = mouse.Target:FindFirstAncestorOfClass("Model")
+		if model and model:FindFirstChild("HumanoidRootPart") then
+			followTarget = model
+			followTargetName = model.Name
+		end
+	end
 end)
 
--- LABEL
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1, 0, 0, 30)
-label.Text = "OYUNCU SEC"
-label.TextColor3 = Color3.fromRGB(255, 255, 255)
-label.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-label.Parent = frame
+--==============================
+-- BUTONLAR
+--==============================
+followBtn.MouseButton1Click:Connect(function()
+	follow = not follow
+	followBtn.Text = follow and "Follow: ON" or "Follow: OFF"
+end)
 
--- SCROLL LIST
-local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, 0, 1, -70)
-scroll.Position = UDim2.new(0, 0, 0, 35)
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-scroll.ScrollBarThickness = 6
-scroll.BackgroundTransparency = 1
-scroll.Parent = frame
+acBtn.MouseButton1Click:Connect(function()
+	autoclick = not autoclick
+	acBtn.Text = autoclick and "AutoClicker (F): ON" or "AutoClicker (F): OFF"
+end)
 
-local UIList = Instance.new("UIListLayout")
-UIList.Parent = scroll
+distMinus.MouseButton1Click:Connect(function()
+	followDistance = math.clamp(followDistance - 5, MIN_VAL, MAX_VAL)
+	updateInfo()
+end)
 
+distPlus.MouseButton1Click:Connect(function()
+	followDistance = math.clamp(followDistance + 5, MIN_VAL, MAX_VAL)
+	updateInfo()
+end)
 
---== UPDATE PLAYER LIST ==--
-local function refreshList()
-	-- cleanup
-	for _, child in ipairs(scroll:GetChildren()) do
-		if child:IsA("TextButton") then child:Destroy() end
+hMinus.MouseButton1Click:Connect(function()
+	followHeight = math.clamp(followHeight - 5, MIN_VAL, MAX_VAL)
+	updateInfo()
+end)
+
+hPlus.MouseButton1Click:Connect(function()
+	followHeight = math.clamp(followHeight + 5, MIN_VAL, MAX_VAL)
+	updateInfo()
+end)
+
+sideMinus.MouseButton1Click:Connect(function()
+	sideOffset = math.clamp(sideOffset - 5, MIN_VAL, MAX_VAL)
+	updateInfo()
+end)
+
+sidePlus.MouseButton1Click:Connect(function()
+	sideOffset = math.clamp(sideOffset + 5, MIN_VAL, MAX_VAL)
+	updateInfo()
+end)
+
+--==============================
+-- TUŞLAR
+--==============================
+UIS.InputBegan:Connect(function(i,gp)
+	if gp then return end
+
+	if i.KeyCode == Enum.KeyCode.G then
+		guiOpen = not guiOpen
+		gui.Enabled = guiOpen
 	end
 
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer then
-			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(1, -10, 0, 32)
-			btn.Text = plr.Name
-			btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-			btn.TextColor3 = Color3.fromRGB(255,255,255)
-			btn.Parent = scroll
+	if i.KeyCode == Enum.KeyCode.F then
+		autoclick = not autoclick
+		acBtn.Text = autoclick and "AutoClicker (F): ON" or "AutoClicker (F): OFF"
+	end
+end)
 
-			btn.MouseButton1Click:Connect(function()
-				currentTarget = plr
-				for _, b in ipairs(scroll:GetChildren()) do
-					if b:IsA("TextButton") then
-						b.BackgroundColor3 = Color3.fromRGB(70,70,70)
-					end
-				end
-				btn.BackgroundColor3 = Color3.fromRGB(0,120,255)
-			end)
+--==============================
+-- AUTOCLICKER
+--==============================
+task.spawn(function()
+	while true do
+		if autoclick then
+			VirtualInputManager:SendMouseButtonEvent(0,0,0,true,game,0)
+			task.wait(0.01)
+			VirtualInputManager:SendMouseButtonEvent(0,0,0,false,game,0)
+		end
+		task.wait()
+	end
+end)
+
+--==============================
+-- TARGET RESPAWN BULUCU
+--==============================
+local function findTargetAgain()
+	if not followTargetName then return end
+	for _,m in ipairs(workspace:GetChildren()) do
+		if m:IsA("Model") and m.Name == followTargetName and m:FindFirstChild("HumanoidRootPart") then
+			followTarget = m
+			return
 		end
 	end
 end
 
-refreshList()
+--==============================
+-- FOLLOW LOOP (SMOOTH + DÜZ)
+--==============================
+RunService.RenderStepped:Connect(function()
+	if not follow then return end
 
-Players.PlayerAdded:Connect(refreshList)
-Players.PlayerRemoving:Connect(function(plr)
-	if currentTarget == plr then
-		currentTarget = nil
-		isFollowing = false
+	if not followTarget or not followTarget:FindFirstChild("HumanoidRootPart") then
+		findTargetAgain()
+		return
 	end
-	refreshList()
+
+	local char = lp.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local tHRP = followTarget.HumanoidRootPart
+
+	local back = tHRP.CFrame.LookVector * followDistance
+	local right = tHRP.CFrame.RightVector * sideOffset
+	local height = Vector3.new(0, followHeight, 0)
+
+	local goalPos = tHRP.Position + back + right + height
+
+	local newPos = hrp.Position:Lerp(goalPos, SMOOTH)
+
+	-- 🔒 ROTASYON YOK
+	hrp.CFrame = CFrame.new(newPos)
 end)
 
-
---== FOLLOW ==--
-local function followStep()
-	if not isFollowing or not currentTarget then return end
-
-	local targetChar = currentTarget.Character
-	if not targetChar then return end
-
-	local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-	if not targetRoot then return end
-
-	-- desired pos behind target
-	local behind = targetRoot.CFrame.LookVector * -FOLLOW_DISTANCE
-	local desiredPos = targetRoot.Position + behind
-
-	-- smooth move
-	local newPos = root.Position:Lerp(desiredPos, FOLLOW_SPEED * RunService.Heartbeat:Wait())
-	root.CFrame = CFrame.new(newPos, Vector3.new(targetRoot.Position.X, newPos.Y, targetRoot.Position.Z))
-end
-
-RunService.Heartbeat:Connect(followStep)
-
-
---== START/STOP BUTTON ==--
-local startBtn = Instance.new("TextButton")
-startBtn.Size = UDim2.new(0, 145, 0, 30)
-startBtn.Position = UDim2.new(0, 5, 1, -35)
-startBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-startBtn.Text = "BASLAT"
-startBtn.Parent = frame
-
-local stopBtn = Instance.new("TextButton")
-stopBtn.Size = UDim2.new(0, 145, 0, 30)
-stopBtn.Position = UDim2.new(1, -150, 1, -35)
-stopBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-stopBtn.Text = "DURDUR"
-stopBtn.Parent = frame
-
-startBtn.MouseButton1Click:Connect(function()
-	if currentTarget then
-		isFollowing = true
-	end
-end)
-
-stopBtn.MouseButton1Click:Connect(function()
-	isFollowing = false
-end)
-
-
---== RESPAWN KEEP ==--
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-	character = newChar
-	root = newChar:WaitForChild("HumanoidRootPart")
-end)
-
-Players.PlayerAdded:Connect(refreshList)
-
-
---== F KEY TOGGLE GUI ==--
-local UIS = game:GetService("UserInputService")
-UIS.InputBegan:Connect(function(input, gp)
-	if gp then return end
-	if input.KeyCode == GUI_TOGGLE_KEY then
-		frame.Visible = not frame.Visible
-	end
-end)
+print("FULL FOLLOW + RESPAWN + SMOOTH AKTİF")
