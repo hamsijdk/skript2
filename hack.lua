@@ -26,7 +26,7 @@ local sideOffset = 0
 local MIN_VAL = -100
 local MAX_VAL = 100
 
-local SMOOTH = 0.15 -- 0.1 çok yumuşak | 0.3 daha hızlı
+local SMOOTH = 0.15
 
 --==============================
 -- GUI
@@ -59,7 +59,7 @@ local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.fromOffset(300, 30)
 title.Position = UDim2.fromOffset(10, 5)
 title.BackgroundTransparency = 1
-title.Text = "FOLLOW + AUTOCLICKER (SMOOTH)"
+title.Text = "FOLLOW + AUTOCLICKER (NPC ONLY)"
 title.TextColor3 = Color3.fromRGB(0,170,255)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 18
@@ -94,15 +94,25 @@ end
 updateInfo()
 
 --==============================
--- TARGET SEÇME (SOL TIK)
+-- TARGET SEÇME (SADECE DUMMY / NPC)
 --==============================
 mouse.Button1Down:Connect(function()
-	if mouse.Target then
-		local model = mouse.Target:FindFirstAncestorOfClass("Model")
-		if model and model:FindFirstChild("HumanoidRootPart") then
-			followTarget = model
-			followTargetName = model.Name
-		end
+	if not mouse.Target then return end
+
+	local model = mouse.Target:FindFirstAncestorOfClass("Model")
+	if not model then return end
+
+	-- ❌ Oyuncular ENGELLİ
+	if Players:GetPlayerFromCharacter(model) then
+		warn("Oyuncular takip edilemez!")
+		return
+	end
+
+	-- ✅ NPC / Dummy
+	if model:FindFirstChild("HumanoidRootPart") then
+		followTarget = model
+		followTargetName = model.Name
+		print("NPC seçildi:", model.Name)
 	end
 end)
 
@@ -186,7 +196,9 @@ end)
 local function findTargetAgain()
 	if not followTargetName then return end
 	for _,m in ipairs(workspace:GetChildren()) do
-		if m:IsA("Model") and m.Name == followTargetName and m:FindFirstChild("HumanoidRootPart") then
+		if m:IsA("Model") and m.Name == followTargetName
+		and m:FindFirstChild("HumanoidRootPart")
+		and not Players:GetPlayerFromCharacter(m) then
 			followTarget = m
 			return
 		end
@@ -198,7 +210,6 @@ end
 --==============================
 RunService.RenderStepped:Connect(function()
 	if not follow then return end
-
 	if not followTarget or not followTarget:FindFirstChild("HumanoidRootPart") then
 		findTargetAgain()
 		return
@@ -216,11 +227,9 @@ RunService.RenderStepped:Connect(function()
 	local height = Vector3.new(0, followHeight, 0)
 
 	local goalPos = tHRP.Position + back + right + height
-
 	local newPos = hrp.Position:Lerp(goalPos, SMOOTH)
 
-	-- 🔒 ROTASYON YOK
 	hrp.CFrame = CFrame.new(newPos)
 end)
 
-print("FULL FOLLOW + RESPAWN + SMOOTH AKTİF")
+print("NPC ONLY FOLLOW + AUTOCLICKER AKTİF")
